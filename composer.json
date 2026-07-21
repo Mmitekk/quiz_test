@@ -1,21 +1,52 @@
 {
     "name": "mmitekk/quiz_test",
     "type": "drupal-custom-module",
-    "description": "Drupal module for creating and conducting online tests with multiple-choice questions, email notifications, and role-based access control.",
+    "description": "Drupal module for creating and conducting online tests with multiple-choice questions, email notifications, and role-based access control. Модуль для создания и проведения тестирования на сайте.",
+    "keywords": [
+        "drupal",
+        "quiz",
+        "test",
+        "testing",
+        "assessment",
+        "multiple-choice",
+        "email",
+        "survey",
+        "e-learning"
+    ],
     "homepage": "https://github.com/Mmitekk/quiz_test",
     "license": "GPL-2.0-or-later",
     "authors": [
         {
             "name": "Mmitekk",
-            "homepage": "https://github.com/Mmitekk"
+            "homepage": "https://github.com/Mmitekk",
+            "role": "Maintainer"
         }
     ],
-    "require": {
-        "php": ">=7.4",
-        "drupal/core": "^9 || ^10"
-    },
     "support": {
         "issues": "https://github.com/Mmitekk/quiz_test/issues",
         "source": "https://github.com/Mmitekk/quiz_test"
+    },
+    "require": {
+        "php": ">=7.4",
+        "drupal/core": "^9 || ^10 || ^11",
+        "ext-json": "*"
+    },
+    "suggest": {
+        "drupal/admin_toolbar": "Удобная навигация по админ-меню Drupal / Handy navigation through Drupal admin menus.",
+        "drupal/mailsystem": "Гибкая настройка почтовых бэкендов (если нужно переопределить способ отправки) / Flexible mail backend configuration.",
+        "drupal/smtp": "Отправка писем через SMTP-сервер (рекомендуется для надёжной доставки результатов) / SMTP mail delivery (recommended for reliable result delivery)."
+    },
+    "extra": {
+        "drupal": {
+            "packageName": "mmitekk/quiz_test",
+            "version": "1.0.0",
+            "security-coverage": {
+                "status": "not-covered",
+                "message": "Покрытие безопасности не проверяется для этого модуля / Security coverage is not checked for this module."
+            }
+        },
+        "installer-paths": {
+            "web/modules/custom/{$name}": ["type:drupal-custom-module"]
+        }
     }
 }

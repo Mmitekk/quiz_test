@@ -1,8 +1,10 @@
 name: 'Тестирование'
 type: module
-description: 'Модуль для создания и проведения тестирования на сайте с вопросами с несколькими вариантами ответов.'
-core_version_requirement: ^9 || ^10
+description: 'Модуль для создания и проведения тестирования на сайте с вопросами с несколькими вариантами ответов, email-уведомлениями о результатах и ролевым доступом.'
+version: '1.0.0'
+core_version_requirement: ^9 || ^10 || ^11
 package: Custom
+configure: quiz_test.settings
 dependencies:
   - drupal:user
   - drupal:field
