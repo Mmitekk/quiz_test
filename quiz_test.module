@@ -23,7 +23,9 @@ function quiz_test_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Управление тестами') . '</dt>';
       $output .= '<dd>' . t('Перейдите в <a href=":tests">Администрирование » Содержимое » Тесты</a> для создания, редактирования и удаления тестов. Каждый тест может иметь название, описание и получателей email для уведомлений о результатах.', [':tests' => '/admin/quiz-test']) . '</dd>';
       $output .= '<dt>' . t('Управление вопросами') . '</dt>';
-      $output .= '<dd>' . t('После создания теста нажмите «Редактировать», а затем перейдите на вкладку «Вопросы», чтобы добавить, отредактировать или удалить вопросы. Каждый вопрос имеет от 2 до 5 вариантов ответа (A–E), один из которых является верным.', []) . '</dd>';
+      $output .= '<dd>' . t('После создания теста нажмите «Редактировать», а затем перейдите на вкладку «Вопросы», чтобы добавить, отредактировать или удалить вопросы с вариантами ответа. Каждый вопрос может иметь неограниченное количество вариантов ответа, один из которых является верным.', []) . '</dd>';
+      $output .= '<dt>' . t('Открытые вопросы') . '</dt>';
+      $output .= '<dd>' . t('На вкладке «Открытые вопросы» можно добавить вторую, опциональную часть теста — открытые вопросы со свободным ответом. Эта часть появляется в форме прохождения и в письме с результатами только при наличии хотя бы одного открытого вопроса. Открытые ответы не влияют на процентный балл.', []) . '</dd>';
       $output .= '<dt>' . t('Настройки') . '</dt>';
       $output .= '<dd>' . t('Перейдите на <a href=":settings">Администрирование » Конфигурация » Настройки тестирования</a>, чтобы указать роль для доступа к тестам и параметры email-уведомлений.', [':settings' => '/admin/config/quiz-test/settings']) . '</dd>';
       $output .= '<dt>' . t('Прохождение тестов') . '</dt>';
@@ -54,6 +56,8 @@ function quiz_test_theme($existing, $type, $theme, $path) {
         'total' => 0,
         'score_percent' => 0,
         'questions' => [],
+        'open_questions' => [],
+        'has_score' => TRUE,
       ],
       'template' => 'quiz-test-results-email',
     ],
@@ -89,6 +93,8 @@ function quiz_test_mail($key, &$message, $params) {
         '#total' => $params['total'],
         '#score_percent' => $params['score_percent'],
         '#questions' => $params['questions'],
+        '#open_questions' => $params['open_questions'] ?? [],
+        '#has_score' => $params['has_score'] ?? TRUE,
       ];
       $rendered_html = (string) \Drupal::service('renderer')->renderPlain($html_content);
 
@@ -211,4 +217,6 @@ function template_preprocess_quiz_test_results_email(&$variables) {
   $variables['total'] = $variables['total'] ?? 0;
   $variables['score_percent'] = $variables['score_percent'] ?? 0;
   $variables['questions'] = $variables['questions'] ?? [];
+  $variables['open_questions'] = $variables['open_questions'] ?? [];
+  $variables['has_score'] = $variables['has_score'] ?? TRUE;
 }

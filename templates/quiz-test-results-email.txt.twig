@@ -2,11 +2,9 @@
 {{ 'Пользователь:'|t }} {{ user_display_name }}
 {% if full_name %}{{ 'ФИО:'|t }} {{ full_name }}
 {% endif %}{{ 'Дата:'|t }} {{ date }}
-{% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}
-{{ summary_text }}
+{% if has_score %}{% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}{{ summary_text }}{% if open_questions %} ({{ 'плюс @count открытых вопросов'|t({'@count': open_questions|length}) }}){% endif %}
 
 ========================================
-
 {% for question in questions %}
 {{ loop.index }}. {{ question.question_text }}
    - {{ 'Ответ пользователя:'|t }} {{ question.user_answer }}
@@ -14,7 +12,14 @@
    {% if question.is_correct %}- {{ 'Результат: верно'|t }}{% else %}- {{ 'Результат: неверно'|t }}{% endif %}
 
 {% endfor %}
+{% if open_questions %}========================================
 
-========================================
+{{ 'Часть 2. Открытые вопросы'|t }}
+{% for oq in open_questions %}
+{{ loop.index }}. {{ oq.question_text }}
+   - {{ 'Ответ:'|t }} {% if oq.user_answer %}{{ oq.user_answer }}{% else %}{{ 'нет ответа'|t }}{% endif %}
 
-{{ 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) }}
+{% endfor %}
+{% endif %}========================================
+
+{% if has_score %}{{ 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) }}{% else %}{{ 'Открытых вопросов: @count (без автопроверки)'|t({'@count': open_questions|length}) }}{% endif %}

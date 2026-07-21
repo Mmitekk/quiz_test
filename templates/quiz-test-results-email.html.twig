@@ -43,12 +43,15 @@
                   </td>
                 </tr>
                 {% endif %}
+                {% if has_score %}
                 <tr>
                   <td style="padding: 4px 0; font-size: 14px; font-weight: 700; color: #c0392b;">
                     {% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}
                     {{ summary_text }}
+                    {% if open_questions %}<span style="color:#555; font-weight:400;"> ({{ 'плюс @count открытых вопросов'|t({'@count': open_questions|length}) }})</span>{% endif %}
                   </td>
                 </tr>
+                {% endif %}
                 <tr>
                   <td style="padding: 4px 0;">
                     <strong style="color: #333;">{{ 'Дата:'|t }}</strong> {{ date }}
@@ -65,9 +68,11 @@
             </td>
           </tr>
 
-          <!-- Questions -->
+          <!-- Part 1: Multiple-choice questions -->
+          {% if questions %}
           <tr>
-            <td style="padding: 16px 24px;">
+            <td style="padding: 16px 24px 0 24px;">
+              <h2 style="margin: 0 0 12px 0; padding: 0; font-size: 15px; font-weight: 700; color: #c0392b; font-family: Arial, Helvetica, sans-serif;">{{ 'Часть 1. Тестирование'|t }}</h2>
               {% for question in questions %}
               <!-- Question block -->
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
@@ -108,6 +113,31 @@
               {% endfor %}
             </td>
           </tr>
+          {% endif %}
+
+          <!-- Part 2: Open questions -->
+          {% if open_questions %}
+          <tr>
+            <td style="padding: {% if questions %}24px{% else %}16px{% endif %} 24px 0 24px; border-top: {% if questions %}1px solid #e0e0e0{% else %}0{% endif %};">
+              <h2 style="margin: 0 0 12px 0; padding: 0; font-size: 15px; font-weight: 700; color: #2c3e50; font-family: Arial, Helvetica, sans-serif;">{{ 'Часть 2. Открытые вопросы'|t }}</h2>
+              {% for oq in open_questions %}
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
+                <tr>
+                  <td style="padding-bottom: 4px;">
+                    <span style="font-size: 14px; font-weight: 700; color: #222;">{{ loop.index }}. {{ oq.question_text }}</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-left: 20px; font-size: 13px; color: #555;">
+                    &bull; {{ 'Ответ:'|t }}
+                    {% if oq.user_answer %}{{ oq.user_answer }}{% else %}<span style="color:#999;">{{ 'нет ответа'|t }}</span>{% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endif %}
 
           <!-- Separator -->
           <tr>
@@ -119,8 +149,12 @@
           <!-- Summary -->
           <tr>
             <td style="padding: 8px 24px 20px 24px; font-size: 15px; font-weight: 700; color: #222;">
-              {% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}
-              {{ summary_text }}
+              {% if has_score %}
+                {% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}
+                {{ summary_text }}{% if open_questions %} <span style="color:#555; font-weight:400;">({{ 'плюс @count открытых вопросов'|t({'@count': open_questions|length}) }})</span>{% endif %}
+              {% else %}
+                {{ 'Открытых вопросов: @count (без автопроверки)'|t({'@count': open_questions|length}) }}
+              {% endif %}
             </td>
           </tr>
 

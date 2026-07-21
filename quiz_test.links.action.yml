@@ -9,3 +9,9 @@ quiz_test.question_add:
   title: 'Добавить вопрос'
   appears_on:
     - quiz_test.question_list
+
+quiz_test.open_question_add:
+  route_name: quiz_test.open_question_add
+  title: 'Добавить открытый вопрос'
+  appears_on:
+    - quiz_test.open_question_list

@@ -165,6 +165,74 @@ function quiz_test_schema() {
     ],
   ];
 
+  $schema['quiz_test_open_question'] = [
+    'description' => 'Stores quiz test open question entities (free-text answers).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique open question ID.',
+      ],
+      'uuid' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'UUID.',
+      ],
+      'test_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The ID of the parent test entity.',
+      ],
+      'question_text' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'description' => 'The open question text.',
+      ],
+      'is_required' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Boolean indicating whether the answer is required (1) or not (0).',
+        'size' => 'tiny',
+      ],
+      'weight' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The weight of the question for ordering.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the question was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the question was last edited.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'test_id' => ['test_id'],
+      'weight' => ['weight'],
+    ],
+    'foreign keys' => [
+      'test_id' => [
+        'table' => 'quiz_test',
+        'columns' => ['test_id' => 'id'],
+      ],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -512,4 +580,27 @@ function quiz_test_update_8009() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
   return t('Changed question_text field to string_long (plain textarea).');
+}
+
+/**
+ * Install the new quiz_test_open_question entity type (open questions part).
+ *
+ * Adds the optional second part of a test — open-ended questions with a
+ * free-text answer. Uses the entity-definition update manager so that the
+ * base table is created and the entity type is registered as installed.
+ */
+function quiz_test_update_8010() {
+  // Force a fresh discovery of entity types so the new annotation is found.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $update_manager->getEntityType('quiz_test_open_question');
+
+  if ($entity_type && !\Drupal::database()->schema()->tableExists('quiz_test_open_question')) {
+    $update_manager->installEntityType($entity_type);
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Installed the open-question entity type for the optional open part.');
 }

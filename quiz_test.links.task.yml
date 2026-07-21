@@ -9,6 +9,14 @@ quiz_test.test_questions_tab:
   route_name: quiz_test.question_list
   title: 'Вопросы'
   base_route: entity.quiz_test.edit_form
+  weight: 1
+
+# Tab for open questions list (optional second part).
+quiz_test.open_questions_tab:
+  route_name: quiz_test.open_question_list
+  title: 'Открытые вопросы'
+  base_route: entity.quiz_test.edit_form
+  weight: 2
 
 # Tab for settings page.
 quiz_test.settings_tab:

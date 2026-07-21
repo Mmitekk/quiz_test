@@ -34,6 +34,40 @@ quiz_test.question_delete:
   requirements:
     _permission: 'administer quiz tests'
 
+# --- Open questions (optional second part) ---
+
+quiz_test.open_question_list:
+  path: '/admin/quiz-test/{quiz_test}/open-questions'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestController::openQuestionList'
+    _title: 'Открытые вопросы'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.open_question_add:
+  path: '/admin/quiz-test/{quiz_test}/open-questions/add'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestController::openQuestionAdd'
+    _title: 'Добавить открытый вопрос'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.open_question_edit:
+  path: '/admin/quiz-test/{quiz_test}/open-questions/{quiz_test_open_question}/edit'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestController::openQuestionEdit'
+    _title: 'Редактирование открытого вопроса'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.open_question_delete:
+  path: '/admin/quiz-test/{quiz_test}/open-questions/{quiz_test_open_question}/delete'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestController::openQuestionDelete'
+    _title: 'Удаление открытого вопроса'
+  requirements:
+    _permission: 'administer quiz tests'
+
 quiz_test.settings:
   path: '/admin/config/quiz-test/settings'
   defaults:

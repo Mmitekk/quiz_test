@@ -24,6 +24,7 @@
 - **Tempstore** — результаты сохраняются в `tempstore.private` для корректной обработки POST-redirect
 - **Логирование** — watchdog-логи при создании/удалении тестов и вопросов
 - **Каскадная конфигурация** — настройки email на уровне теста переопределяют глобальные значения
+- **Опциональная открытая часть (с версии 1.1.0)** — вторая часть теста из открытых вопросов со свободным ответом (однострочное поле). Появляется в форме прохождения и в письме только если у теста есть открытые вопросы. Не влияет на процентный балл. У каждого открытого вопроса — галочка «Обязательно»
 
 ## Требования
 
@@ -130,6 +131,19 @@ drush cr
 4. Сохраните вопрос
 5. Повторите для всех вопросов
 
+### Шаг 3а. Добавьте открытые вопросы (опционально)
+
+Открытая часть появляется в форме прохождения и в письме с результатами, **только** если у теста есть хотя бы один открытый вопрос. Если их нет — часть полностью скрыта.
+
+1. На странице редактирования теста переключитесь на вкладку **Открытые вопросы**
+2. Нажмите **Добавить открытый вопрос**
+3. Заполните:
+   - **Текст вопроса** — формулировка открытого вопроса (например, расчёт)
+   - **Обязательно для заполнения** — если включено, пользователь не сможет отправить тест, не заполнив это поле (по умолчанию выключено)
+   - **Вес** — порядок сортировки (меньше = выше)
+4. Сохраните вопрос
+5. Повторите для всех открытых вопросов
+
 ### Шаг 4. Пройдите тест
 
 1. Пользователи с настроенной ролью переходят по адресу `/quiz-test/{id-теста}`
@@ -160,6 +174,10 @@ drush cr
 | `/admin/quiz-test/{id}/questions/add` | `quiz_test.question_add` | Добавить вопрос |
 | `/admin/quiz-test/{id}/questions/{qid}/edit` | `quiz_test.question_edit` | Редактировать вопрос |
 | `/admin/quiz-test/{id}/questions/{qid}/delete` | `quiz_test.question_delete` | Удалить вопрос |
+| `/admin/quiz-test/{id}/open-questions` | `quiz_test.open_question_list` | Список открытых вопросов теста |
+| `/admin/quiz-test/{id}/open-questions/add` | `quiz_test.open_question_add` | Добавить открытый вопрос |
+| `/admin/quiz-test/{id}/open-questions/{qid}/edit` | `quiz_test.open_question_edit` | Редактировать открытый вопрос |
+| `/admin/quiz-test/{id}/open-questions/{qid}/delete` | `quiz_test.open_question_delete` | Удалить открытый вопрос |
 | `/admin/config/quiz-test/settings` | `quiz_test.settings` | Настройки модуля |
 | `/quiz-test/{id}` | `quiz_test.take_test` | Пройти тест (публично) |
 
@@ -190,12 +208,15 @@ quiz_test/
     │   └── QuizTestController.php       — Контроллер: вопросы CRUD, прохождение теста
     ├── Entity/
     │   ├── QuizTest.php                 — Сущность теста (title, description, email, status)
-    │   └── QuizTestQuestion.php         — Сущность вопроса (test_id, question_text, answers JSON, correct_answer, weight)
+    │   ├── QuizTestQuestion.php         — Сущность вопроса (test_id, question_text, answers JSON, correct_answer, weight)
+    │   └── QuizTestOpenQuestion.php     — Сущность открытого вопроса (test_id, question_text, is_required, weight)
     ├── Form/
     │   ├── QuizTestForm.php             — Форма добавления/редактирования теста
-    │   ├── QuizTestDeleteForm.php       — Форма удаления теста (каскадное удаление вопросов)
+    │   ├── QuizTestDeleteForm.php       — Форма удаления теста (каскадное удаление вопросов + открытых)
     │   ├── QuizTestQuestionForm.php     — AJAX-форма вопроса (динамические ответы)
     │   ├── QuizTestQuestionDeleteForm.php — Форма удаления вопроса
+    │   ├── QuizTestOpenQuestionForm.php — Форма открытого вопроса (текст + «Обязательно» + вес)
+    │   ├── QuizTestOpenQuestionDeleteForm.php — Форма удаления открытого вопроса
     │   ├── QuizTestListBuilder.php      — Кастомный список тестов
     │   ├── QuizTestSettingsForm.php     — Форма настроек модуля
     │   └── TakeTestForm.php             — Публичная форма прохождения теста
@@ -230,7 +251,7 @@ quiz_test/
 
 ## Текущая версия
 
-**1.0.0** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
+**1.1.0** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
 
 ## Удаление модуля
 

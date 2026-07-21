@@ -24,6 +24,7 @@ A Drupal 9 / 10 / 11 module that provides a complete online testing system: admi
 - **Tempstore** — results are stored in `tempstore.private` for proper POST-redirect handling
 - **Logging** — watchdog logs on test/question creation and deletion
 - **Cascading config** — per-test email settings override the global defaults
+- **Optional open part (since 1.1.0)** — a second part made of open-ended questions with a free-text answer (single-line field). It only appears in the take form and in the email if the test has at least one open question. Open answers do not affect the percentage score. Each open question has a "Required" checkbox
 
 ## Requirements
 
@@ -130,6 +131,19 @@ Go to **Administration → Configuration → Quiz Test Settings** (`/admin/confi
 4. Save the question
 5. Repeat for all questions
 
+### Step 3a. Add open questions (optional)
+
+The open part appears in the take form and in the results email **only** if the test has at least one open question. If there are none, the part is fully hidden.
+
+1. On the test edit page, switch to the **Open questions** tab
+2. Click **Add open question**
+3. Fill in:
+   - **Question text** — the open question wording (e.g. a calculation)
+   - **Required to fill** — when enabled, the user cannot submit the test without filling this field (off by default)
+   - **Weight** — sort order (lower = higher)
+4. Save the question
+5. Repeat for all open questions
+
 ### Step 4. Take a test
 
 1. Users with the configured role visit `/quiz-test/{test-id}`
@@ -160,6 +174,10 @@ Configure at **Administration → People → Permissions** (`/admin/people/permi
 | `/admin/quiz-test/{id}/questions/add` | `quiz_test.question_add` | Add question |
 | `/admin/quiz-test/{id}/questions/{qid}/edit` | `quiz_test.question_edit` | Edit question |
 | `/admin/quiz-test/{id}/questions/{qid}/delete` | `quiz_test.question_delete` | Delete question |
+| `/admin/quiz-test/{id}/open-questions` | `quiz_test.open_question_list` | Open-question list for a test |
+| `/admin/quiz-test/{id}/open-questions/add` | `quiz_test.open_question_add` | Add open question |
+| `/admin/quiz-test/{id}/open-questions/{qid}/edit` | `quiz_test.open_question_edit` | Edit open question |
+| `/admin/quiz-test/{id}/open-questions/{qid}/delete` | `quiz_test.open_question_delete` | Delete open question |
 | `/admin/config/quiz-test/settings` | `quiz_test.settings` | Module settings |
 | `/quiz-test/{id}` | `quiz_test.take_test` | Take test (public) |
 
@@ -190,12 +208,15 @@ quiz_test/
     │   └── QuizTestController.php       — Question CRUD + take-test controller
     ├── Entity/
     │   ├── QuizTest.php                 — Test entity (title, description, email, status)
-    │   └── QuizTestQuestion.php         — Question entity (test_id, question_text, answers JSON, correct_answer, weight)
+    │   ├── QuizTestQuestion.php         — Question entity (test_id, question_text, answers JSON, correct_answer, weight)
+    │   └── QuizTestOpenQuestion.php     — Open question entity (test_id, question_text, is_required, weight)
     ├── Form/
     │   ├── QuizTestForm.php             — Add/edit test form
-    │   ├── QuizTestDeleteForm.php       — Delete test form (cascades to questions)
+    │   ├── QuizTestDeleteForm.php       — Delete test form (cascades to questions + open questions)
     │   ├── QuizTestQuestionForm.php     — AJAX question form (dynamic answers)
     │   ├── QuizTestQuestionDeleteForm.php — Delete question form
+    │   ├── QuizTestOpenQuestionForm.php — Open question form (text + "Required" + weight)
+    │   ├── QuizTestOpenQuestionDeleteForm.php — Delete open question form
     │   ├── QuizTestListBuilder.php      — Custom admin list builder
     │   ├── QuizTestSettingsForm.php     — Module settings form
     │   └── TakeTestForm.php             — Public test-taking form
@@ -230,7 +251,7 @@ The module uses standard Drupal APIs (`@ContentEntityType`, `BaseFieldDefinition
 
 ## Current version
 
-**1.0.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
+**1.1.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
 
 ## Uninstallation
 

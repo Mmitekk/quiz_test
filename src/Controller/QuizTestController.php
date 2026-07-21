@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\quiz_test\Entity\QuizTest;
 use Drupal\quiz_test\Entity\QuizTestQuestion;
+use Drupal\quiz_test\Entity\QuizTestOpenQuestion;
 use Drupal\quiz_test\Form\TakeTestForm;
 
 /**
@@ -118,6 +119,106 @@ class QuizTestController extends ControllerBase {
     $form = \Drupal::entityTypeManager()
       ->getFormObject('quiz_test_question', 'delete')
       ->setEntity($quiz_test_question);
+
+    return \Drupal::formBuilder()->getForm($form);
+  }
+
+  /**
+   * Displays a list of open questions for a test.
+   */
+  public function openQuestionList(QuizTest $quiz_test) {
+    $questions = $quiz_test->getOpenQuestions();
+
+    $header = [
+      ['data' => $this->t('#'), '#width' => '40'],
+      ['data' => $this->t('Вопрос'), '#width' => '60%'],
+      ['data' => $this->t('Обязательно'), '#width' => '120'],
+      ['data' => $this->t('Вес'), '#width' => '70'],
+      ['data' => $this->t('Операции')],
+    ];
+
+    $rows = [];
+    foreach ($questions as $delta => $question) {
+      $edit_url = Url::fromRoute('quiz_test.open_question_edit', [
+        'quiz_test' => $quiz_test->id(),
+        'quiz_test_open_question' => $question->id(),
+      ]);
+      $delete_url = Url::fromRoute('quiz_test.open_question_delete', [
+        'quiz_test' => $quiz_test->id(),
+        'quiz_test_open_question' => $question->id(),
+      ]);
+
+      $rows[] = [
+        ['data' => $delta + 1],
+        ['data' => $question->getQuestionText()],
+        ['data' => $question->isRequired() ? $this->t('Да') : $this->t('Нет')],
+        ['data' => $question->getWeight()],
+        ['data' => [
+          '#type' => 'operations',
+          '#links' => [
+            'edit' => [
+              'title' => $this->t('Редактировать'),
+              'url' => $edit_url,
+            ],
+            'delete' => [
+              'title' => $this->t('Удалить'),
+              'url' => $delete_url,
+            ],
+          ],
+        ]],
+      ];
+    }
+
+    $build['intro'] = [
+      '#markup' => '<p>' . $this->t('Открытые вопросы — вторая, опциональная часть теста. Пользователь вписывает ответ в свободной форме. Открытая часть появляется в форме прохождения и в письме с результатами только если у теста есть хотя бы один открытый вопрос. Открытые ответы не влияют на процентный балл.') . '</p>',
+    ];
+
+    $build['table'] = [
+      '#type' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => $this->t('Открытые вопросы ещё не добавлены. Открытая часть будет отключена, пока не добавлен хотя бы один вопрос.'),
+      '#attributes' => ['class' => ['quiz-test-admin-table']],
+    ];
+
+    $build['#attached']['library'][] = 'quiz_test/quiz_test.admin';
+
+    return $build;
+  }
+
+  /**
+   * Displays the form to add a new open question.
+   */
+  public function openQuestionAdd(QuizTest $quiz_test) {
+    $question = \Drupal::entityTypeManager()
+      ->getStorage('quiz_test_open_question')
+      ->create(['test_id' => $quiz_test->id()]);
+
+    $form = \Drupal::entityTypeManager()
+      ->getFormObject('quiz_test_open_question', 'add')
+      ->setEntity($question);
+
+    return \Drupal::formBuilder()->getForm($form);
+  }
+
+  /**
+   * Displays the form to edit an open question.
+   */
+  public function openQuestionEdit(QuizTest $quiz_test, QuizTestOpenQuestion $quiz_test_open_question) {
+    $form = \Drupal::entityTypeManager()
+      ->getFormObject('quiz_test_open_question', 'edit')
+      ->setEntity($quiz_test_open_question);
+
+    return \Drupal::formBuilder()->getForm($form);
+  }
+
+  /**
+   * Displays the delete confirmation form for an open question.
+   */
+  public function openQuestionDelete(QuizTest $quiz_test, QuizTestOpenQuestion $quiz_test_open_question) {
+    $form = \Drupal::entityTypeManager()
+      ->getFormObject('quiz_test_open_question', 'delete')
+      ->setEntity($quiz_test_open_question);
 
     return \Drupal::formBuilder()->getForm($form);
   }

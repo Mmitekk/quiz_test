@@ -216,6 +216,26 @@ class QuizTest extends ContentEntityBase {
   }
 
   /**
+   * Gets the open questions for this test.
+   *
+   * @return \Drupal\quiz_test\Entity\QuizTestOpenQuestion[]
+   *   Array of open question entities, ordered by weight then id.
+   */
+  public function getOpenQuestions() {
+    $query = \Drupal::entityTypeManager()->getStorage('quiz_test_open_question')->getQuery()
+      ->condition('test_id', $this->id())
+      ->sort('weight', 'ASC')
+      ->sort('id', 'ASC')
+      ->accessCheck(TRUE);
+    $ids = $query->execute();
+    if (empty($ids)) {
+      return [];
+    }
+    $entities = \Drupal::entityTypeManager()->getStorage('quiz_test_open_question')->loadMultiple($ids);
+    return array_values($entities);
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function baseFieldDefinitions(EntityTypeInterface $entity_type) {

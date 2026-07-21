@@ -15,7 +15,7 @@ class QuizTestDeleteForm extends ContentEntityDeleteForm {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Вы уверены, что хотите удалить тест «%name»? Все вопросы, связанные с этим тестом, также будут удалены.', [
+    return $this->t('Вы уверены, что хотите удалить тест «%name»? Все вопросы (включая открытые), связанные с этим тестом, также будут удалены.', [
       '%name' => $this->entity->label(),
     ]);
   }
@@ -32,11 +32,18 @@ class QuizTestDeleteForm extends ContentEntityDeleteForm {
    */
   public function submitForm(array &$form, FormStateInterface $form_state) {
     $entity = $this->entity;
-    // Delete all associated questions.
+    // Delete all associated multiple-choice questions.
     $questions = $entity->getQuestions();
     $question_storage = $this->entityTypeManager->getStorage('quiz_test_question');
     foreach ($questions as $question) {
       $question_storage->delete([$question]);
+    }
+
+    // Delete all associated open questions.
+    $open_questions = $entity->getOpenQuestions();
+    $open_storage = $this->entityTypeManager->getStorage('quiz_test_open_question');
+    foreach ($open_questions as $open_question) {
+      $open_storage->delete([$open_question]);
     }
 
     parent::submitForm($form, $form_state);
