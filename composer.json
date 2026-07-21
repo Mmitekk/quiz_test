@@ -1,0 +1,21 @@
+{
+    "name": "mmitekk/quiz_test",
+    "type": "drupal-custom-module",
+    "description": "Drupal module for creating and conducting online tests with multiple-choice questions, email notifications, and role-based access control.",
+    "homepage": "https://github.com/Mmitekk/quiz_test",
+    "license": "GPL-2.0-or-later",
+    "authors": [
+        {
+            "name": "Mmitekk",
+            "homepage": "https://github.com/Mmitekk"
+        }
+    ],
+    "require": {
+        "php": ">=7.4",
+        "drupal/core": "^9 || ^10"
+    },
+    "support": {
+        "issues": "https://github.com/Mmitekk/quiz_test/issues",
+        "source": "https://github.com/Mmitekk/quiz_test"
+    }
+}
