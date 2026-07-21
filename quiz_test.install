@@ -165,7 +165,19 @@ function quiz_test_schema() {
     ],
   ];
 
-  $schema['quiz_test_open_question'] = [
+  $schema['quiz_test_open_question'] = _quiz_test_open_question_schema();
+
+  return $schema;
+}
+
+/**
+ * Returns the schema definition for the {quiz_test_open_question} table.
+ *
+ * Shared between hook_schema() (fresh installs) and the update functions so
+ * the two copies can never drift apart.
+ */
+function _quiz_test_open_question_schema() {
+  return [
     'description' => 'Stores quiz test open question entities (free-text answers).',
     'fields' => [
       'id' => [
@@ -232,8 +244,6 @@ function quiz_test_schema() {
       ],
     ],
   ];
-
-  return $schema;
 }
 
 /**
@@ -603,4 +613,47 @@ function quiz_test_update_8010() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
   return t('Installed the open-question entity type for the optional open part.');
+}
+
+/**
+ * Guarantee the {quiz_test_open_question} table exists.
+ *
+ * update_8010() may have silently skipped creating the table on sites where
+ * the new entity type was not yet discovered (stale cache during updb), which
+ * left the table missing and broke the take-test page. This update makes no
+ * assumptions: it creates the table directly from the schema spec if it is
+ * still absent, regardless of whether the entity type is discoverable yet.
+ */
+function quiz_test_update_8011() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  // Make sure the new entity type is discoverable from the annotation.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  if (!$schema->tableExists('quiz_test_open_question')) {
+    // Preferred path: install the entity type via the official API so the
+    // base table is created AND the type is registered as installed.
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $entity_type = $update_manager->getEntityType('quiz_test_open_question');
+    if ($entity_type) {
+      try {
+        $update_manager->installEntityType($entity_type);
+      }
+      catch (\Exception $e) {
+        // Fall through to the manual fallback below.
+      }
+    }
+
+    // Ultimate fallback: create the table directly from the schema spec.
+    // This guarantees the table exists even if the entity type could not be
+    // installed through the definition update manager.
+    if (!$schema->tableExists('quiz_test_open_question')) {
+      $schema->createTable('quiz_test_open_question', _quiz_test_open_question_schema());
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Ensured the quiz_test_open_question table exists.');
 }

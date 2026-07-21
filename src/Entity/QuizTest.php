@@ -227,7 +227,18 @@ class QuizTest extends ContentEntityBase {
       ->sort('weight', 'ASC')
       ->sort('id', 'ASC')
       ->accessCheck(TRUE);
-    $ids = $query->execute();
+    try {
+      $ids = $query->execute();
+    }
+    catch (\Exception $e) {
+      // The table may not exist yet (e.g. pending database updates). Treat
+      // this as "no open questions" instead of crashing the whole page.
+      \Drupal::logger('quiz_test')->warning('Could not query open questions for test @id: @message', [
+        '@id' => $this->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
     if (empty($ids)) {
       return [];
     }
