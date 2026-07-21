@@ -1,0 +1,8 @@
+administer quiz tests:
+  title: 'Управление тестами'
+  description: 'Создание, редактирование и удаление тестов и вопросов.'
+  restrict access: true
+
+take quiz tests:
+  title: 'Прохождение тестов'
+  description: 'Прохождение тестов на сайте.'

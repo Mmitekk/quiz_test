@@ -1,0 +1,13 @@
+entity.quiz_test.collection:
+  title: 'Тесты'
+  description: 'Управление тестами и вопросами.'
+  parent: system.admin_content
+  route_name: entity.quiz_test.collection
+  weight: 100
+
+quiz_test.settings:
+  title: 'Настройки тестирования'
+  description: 'Настройки модуля тестирования.'
+  parent: system.admin_config
+  route_name: quiz_test.settings
+  weight: 100

@@ -1,0 +1,9 @@
+name: 'Тестирование'
+type: module
+description: 'Модуль для создания и проведения тестирования на сайте с вопросами с несколькими вариантами ответов.'
+core_version_requirement: ^9 || ^10
+package: Custom
+dependencies:
+  - drupal:user
+  - drupal:field
+  - drupal:options

@@ -1,0 +1,17 @@
+# Tab for edit-form page (primary tab).
+quiz_test.test_edit_tab:
+  route_name: entity.quiz_test.edit_form
+  title: 'Редактировать'
+  base_route: entity.quiz_test.edit_form
+
+# Tab for questions list on the same edit-form page.
+quiz_test.test_questions_tab:
+  route_name: quiz_test.question_list
+  title: 'Вопросы'
+  base_route: entity.quiz_test.edit_form
+
+# Tab for settings page.
+quiz_test.settings_tab:
+  route_name: quiz_test.settings
+  title: 'Настройки'
+  base_route: quiz_test.settings

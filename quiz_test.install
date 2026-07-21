@@ -1,0 +1,515 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the Quiz Test module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function quiz_test_schema() {
+  $schema['quiz_test'] = [
+    'description' => 'Stores quiz test entities.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique test ID.',
+      ],
+      'uuid' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'UUID.',
+      ],
+      'title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The title of the test.',
+      ],
+      'description__value' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'The description text value.',
+      ],
+      'description__format' => [
+        'type' => 'varchar_ascii',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'The description text format.',
+      ],
+      'email_recipients' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Comma-separated list of email recipients for test results.',
+      ],
+      'email_subject' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => 'The email subject for result notifications.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The user ID of the test author.',
+      ],
+      'status' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Boolean indicating whether the test is published (1) or not (0).',
+        'size' => 'tiny',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the test was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the test was last edited.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'status' => ['status'],
+      'created' => ['created'],
+    ],
+  ];
+
+  $schema['quiz_test_question'] = [
+    'description' => 'Stores quiz test question entities.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique question ID.',
+      ],
+      'uuid' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'UUID.',
+      ],
+      'test_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The ID of the parent test entity.',
+      ],
+      'question_text' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'description' => 'The question text.',
+      ],
+      'answers' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON-encoded array of answer option strings. Supports unlimited options.',
+      ],
+      'correct_answer' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '0-based index of the correct answer in the answers JSON array.',
+        'size' => 'small',
+      ],
+      'weight' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The weight of the question for ordering.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the question was created.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the question was last edited.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'test_id' => ['test_id'],
+      'weight' => ['weight'],
+    ],
+    'foreign keys' => [
+      'test_id' => [
+        'table' => 'quiz_test',
+        'columns' => ['test_id' => 'id'],
+      ],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
+ * Implements hook_install().
+ */
+function quiz_test_install() {
+  // Set default configuration.
+  \Drupal::configFactory()->getEditable('quiz_test.settings')
+    ->set('email_subject', 'Результаты теста: @test_title — @user_name (@score)')
+    ->set('email_recipients', '')
+    ->set('access_role', '')
+    ->save();
+
+  // Configure the quiz_test module to use our custom HTML mail plugin.
+  // This prevents Drupal core's PhpMail from word-wrapping HTML content.
+  $mail_config = \Drupal::configFactory()->getEditable('system.mail');
+  $interface = $mail_config->get('interface') ?: [];
+  $interface['quiz_test'] = 'quiz_test_php_mail';
+  $mail_config->set('interface', $interface)->save();
+
+  \Drupal::logger('quiz_test')->notice('Модуль «Тестирование» установлен. Настройте его на странице /admin/config/quiz-test/settings.');
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function quiz_test_uninstall() {
+  // Clean up configuration.
+  \Drupal::configFactory()->getEditable('quiz_test.settings')->delete();
+
+  // Remove our custom mail plugin from system.mail configuration.
+  $mail_config = \Drupal::configFactory()->getEditable('system.mail');
+  $interface = $mail_config->get('interface') ?: [];
+  if (isset($interface['quiz_test'])) {
+    unset($interface['quiz_test']);
+    $mail_config->set('interface', $interface)->save();
+  }
+}
+
+/**
+ * Update correct_answer field from integer to list_integer.
+ */
+function quiz_test_update_8001() {
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated correct_answer field to list_integer type.');
+}
+
+/**
+ * Add answer_e field and update correct_answer to include E option.
+ */
+function quiz_test_update_8002() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->fieldExists('quiz_test_question', 'answer_e')) {
+    $schema->addField('quiz_test_question', 'answer_e', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'default' => '',
+      'description' => 'Answer option E.',
+    ]);
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Added answer_e field and updated field definitions.');
+}
+
+/**
+ * Remove unwanted fields from stored EntityViewDisplay configuration.
+ */
+function quiz_test_update_8003() {
+  $config_factory = \Drupal::configFactory();
+  $names = $config_factory->listAll('core.entity_view_display.quiz_test');
+  foreach ($names as $name) {
+    $config_factory->getEditable($name)->delete();
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::cache('config')->deleteAll();
+
+  return t('Removed stale entity view display configuration.');
+}
+
+/**
+ * Update answer labels from A-E to 1-5 and correct_answer allowed_values.
+ */
+function quiz_test_update_8004() {
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  return t('Updated answer labels from A-E to 1-5.');
+}
+
+/**
+ * Make answer_d nullable so empty options 4 and 5 don't cause SQL errors.
+ */
+function quiz_test_update_8005() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if ($schema->fieldExists('quiz_test_question', 'answer_d')) {
+    $schema->changeField('quiz_test_question', 'answer_d', 'answer_d', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'default' => '',
+      'description' => 'Answer option D.',
+    ]);
+  }
+
+  if ($schema->fieldExists('quiz_test_question', 'answer_e')) {
+    $schema->changeField('quiz_test_question', 'answer_e', 'answer_e', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'default' => '',
+      'description' => 'Answer option E.',
+    ]);
+  }
+
+  return t('Made answer_d and answer_e nullable.');
+}
+
+/**
+ * Configure custom HTML mail plugin for quiz_test emails.
+ */
+function quiz_test_update_8006() {
+  $mail_config = \Drupal::configFactory()->getEditable('system.mail');
+  $interface = $mail_config->get('interface') ?: [];
+  $interface['quiz_test'] = 'quiz_test_php_mail';
+  $mail_config->set('interface', $interface)->save();
+
+  \Drupal::service('plugin.manager.mail')->clearCachedDefinitions();
+
+  return t('Configured quiz_test to use HTML mail plugin.');
+}
+
+/**
+ * Migrate from 5 fixed answer fields to unlimited JSON answers field.
+ *
+ * - Adds 'answers' TEXT column (JSON array)
+ * - Migrates data from answer_a..answer_e into JSON
+ * - Drops old answer_a..answer_e columns
+ * - Expands correct_answer column to SMALLINT
+ */
+function quiz_test_update_8007() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  // 1. Add the new 'answers' column.
+  if (!$schema->fieldExists('quiz_test_question', 'answers')) {
+    $schema->addField('quiz_test_question', 'answers', [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON-encoded array of answer option strings.',
+    ]);
+  }
+
+  // 2. Expand correct_answer from TINYINT to SMALLINT.
+  if ($schema->fieldExists('quiz_test_question', 'correct_answer')) {
+    $schema->changeField('quiz_test_question', 'correct_answer', 'correct_answer', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => '0-based index of the correct answer.',
+      'size' => 'small',
+    ]);
+  }
+
+  // 3. Migrate existing data from answer_a..answer_e into JSON.
+  $answer_columns = ['answer_a', 'answer_b', 'answer_c', 'answer_d', 'answer_e'];
+  $has_old_columns = FALSE;
+  foreach ($answer_columns as $col) {
+    if ($schema->fieldExists('quiz_test_question', $col)) {
+      $has_old_columns = TRUE;
+      break;
+    }
+  }
+
+  if ($has_old_columns) {
+    $query = $database->select('quiz_test_question', 'q');
+    foreach ($answer_columns as $col) {
+      $query->addField('q', $col);
+    }
+    $query->addField('q', 'id');
+    $query->addField('q', 'correct_answer');
+    $results = $query->execute();
+
+    foreach ($results as $row) {
+      $answers = [];
+      foreach ($answer_columns as $col) {
+        if (!empty($row->$col)) {
+          $answers[] = $row->$col;
+        }
+      }
+
+      if (!empty($answers)) {
+        $update_fields = [
+          'answers' => json_encode($answers, JSON_UNESCAPED_UNICODE),
+        ];
+
+        // Fix correct_answer if it points beyond the actual answers.
+        $correct = (int) $row->correct_answer;
+        if ($correct >= count($answers)) {
+          $update_fields['correct_answer'] = 0;
+        }
+
+        $database->update('quiz_test_question')
+          ->fields($update_fields)
+          ->condition('id', $row->id)
+          ->execute();
+      }
+    }
+
+    // 4. Drop old answer columns.
+    foreach ($answer_columns as $col) {
+      if ($schema->fieldExists('quiz_test_question', $col)) {
+        $schema->dropField('quiz_test_question', $col);
+      }
+    }
+  }
+
+  // 5. Clear caches so new field definitions take effect.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Migrated from 5 fixed answer fields to unlimited JSON answers.');
+}
+
+/**
+ * Force-clear all cached entity field definitions.
+ *
+ * Drupal stores the "last installed" field storage definitions in the
+ * key_value table (collection: entity.definitions.installed).  Because
+ * update_8007 manipulated the database schema directly (instead of going
+ * through the entity-type update API), those cached definitions became
+ * stale — they still list answer_a..answer_e even though the columns are
+ * gone.  This update deletes every cached definition entry for both our
+ * entity types so Drupal is forced to rebuild them from the current
+ * baseFieldDefinitions().
+ */
+function quiz_test_update_8008() {
+  $database = \Drupal::database();
+
+  // 1. Delete cached field-storage definitions from key_value.
+  $database->delete('key_value')
+    ->condition('collection', 'entity.definitions.installed')
+    ->condition('name', $database->condition('OR')
+      ->condition('name', 'quiz_test.field_storage_definitions')
+      ->condition('name', 'quiz_test_question.field_storage_definitions')
+    )
+    ->execute();
+
+  // 2. Delete cached entity-type definitions (onEntityTypeCreate/Update).
+  $database->delete('key_value')
+    ->condition('collection', 'entity.definitions.installed')
+    ->condition('name', $database->condition('OR')
+      ->condition('name', 'quiz_test.entity_type')
+      ->condition('name', 'quiz_test_question.entity_type')
+    )
+    ->execute();
+
+  // 3. Truncate ALL Drupal cache bins so nothing stale survives.
+  $all_bins = [
+    'cache_bootstrap',
+    'cache_config',
+    'cache_discovery',
+    'cache_entity',
+    'cache_data',
+    'cache_menu',
+    'cache_render',
+    'cache_dynamic_page_cache',
+    'cache_page',
+  ];
+  foreach ($all_bins as $bin) {
+    try {
+      $database->truncate($bin)->execute();
+    }
+    catch (\Exception $e) {
+      // Bin may not exist (e.g. using Redis/Memcached).
+    }
+  }
+
+  // 4. Also clear the route cache so menu/routing picks up changes.
+  try {
+    $database->truncate('cache_router')->execute();
+  }
+  catch (\Exception $e) {
+    // Bin may not exist.
+  }
+
+  // 5. Rebuild the service container & caches through the official API.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+  \Drupal::service('plugin.manager.mail')->clearCachedDefinitions();
+
+  // Force a container rebuild.
+  try {
+    \Drupal::service('kernel')->rebuildContainer();
+  }
+  catch (\Exception $e) {
+    // May fail during update.php; acceptable.
+  }
+
+  return t('Force-cleared all stale entity field definitions.');
+}
+
+/**
+ * Change question_text from text_long to string_long (plain textarea).
+ */
+function quiz_test_update_8009() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->fieldExists('quiz_test_question', 'question_text')) {
+    return t('question_text field already updated.');
+  }
+
+  if ($schema->fieldExists('quiz_test_question', 'question_text__value')) {
+    $schema->changeField('quiz_test_question', 'question_text__value', 'question_text', [
+      'type' => 'text',
+      'not null' => TRUE,
+      'description' => 'The question text.',
+    ]);
+  }
+
+  if ($schema->fieldExists('quiz_test_question', 'question_text__format')) {
+    $schema->dropField('quiz_test_question', 'question_text__format');
+  }
+
+  $database->delete('key_value')
+    ->condition('collection', 'entity.definitions.installed')
+    ->condition('name', $database->condition('OR')
+      ->condition('name', 'quiz_test.field_storage_definitions')
+      ->condition('name', 'quiz_test_question.field_storage_definitions')
+    )
+    ->execute();
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Changed question_text field to string_long (plain textarea).');
+}

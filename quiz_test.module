@@ -1,0 +1,214 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for the Quiz Test module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+
+/**
+ * Implements hook_help().
+ */
+function quiz_test_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.quiz_test':
+      $output = '';
+      $output .= '<h3>' . t('О модуле') . '</h3>';
+      $output .= '<p>' . t('Модуль «Тестирование» позволяет создавать и управлять тестами на вашем сайте. Администраторы могут создавать тесты с вопросами с несколькими вариантами ответов, а пользователи с соответствующей ролью могут проходить тесты.') . '</p>';
+      $output .= '<h3>' . t('Использование') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Управление тестами') . '</dt>';
+      $output .= '<dd>' . t('Перейдите в <a href=":tests">Администрирование » Содержимое » Тесты</a> для создания, редактирования и удаления тестов. Каждый тест может иметь название, описание и получателей email для уведомлений о результатах.', [':tests' => '/admin/quiz-test']) . '</dd>';
+      $output .= '<dt>' . t('Управление вопросами') . '</dt>';
+      $output .= '<dd>' . t('После создания теста нажмите «Редактировать», а затем перейдите на вкладку «Вопросы», чтобы добавить, отредактировать или удалить вопросы. Каждый вопрос имеет от 2 до 5 вариантов ответа (A–E), один из которых является верным.', []) . '</dd>';
+      $output .= '<dt>' . t('Настройки') . '</dt>';
+      $output .= '<dd>' . t('Перейдите на <a href=":settings">Администрирование » Конфигурация » Настройки тестирования</a>, чтобы указать роль для доступа к тестам и параметры email-уведомлений.', [':settings' => '/admin/config/quiz-test/settings']) . '</dd>';
+      $output .= '<dt>' . t('Прохождение тестов') . '</dt>';
+      $output .= '<dd>' . t('Пользователи с назначенной ролью могут проходить тесты по адресу <em>/quiz-test/{test-id}</em>. После отправки ответов результаты будут отправлены на настроенные адреса электронной почты.', []) . '</dd>';
+      $output .= '</dl>';
+      return $output;
+
+    case 'entity.quiz_test.collection':
+      return '<p>' . t('Управление тестами. Нажмите «Добавить тест», чтобы создать новый тест, или используйте ссылки в столбце «Операции» для редактирования, удаления и управления вопросами.') . '</p>';
+
+    case 'quiz_test.settings':
+      return '<p>' . t('Настройки модуля «Тестирование». Укажите роль, которой разрешено проходить тесты, и параметры email-уведомлений о результатах.') . '</p>';
+  }
+}
+
+/**
+ * Implements hook_theme().
+ */
+function quiz_test_theme($existing, $type, $theme, $path) {
+  return [
+    'quiz_test_results_email' => [
+      'variables' => [
+        'test' => NULL,
+        'user' => NULL,
+        'full_name' => '',
+        'date' => '',
+        'correct' => 0,
+        'total' => 0,
+        'score_percent' => 0,
+        'questions' => [],
+      ],
+      'template' => 'quiz-test-results-email',
+    ],
+  ];
+}
+
+/**
+ * Implements hook_mail().
+ */
+function quiz_test_mail($key, &$message, $params) {
+  switch ($key) {
+    case 'quiz_test_results':
+      /** @var \Drupal\quiz_test\Entity\QuizTest $test */
+      $test = $params['test'];
+      /** @var \Drupal\user\UserInterface $user */
+      $user = $params['user'];
+
+      $message['subject'] = $params['subject'];
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+
+      // Build the HTML email body using the template.
+      $html_content = [
+        '#theme' => 'quiz_test_results_email',
+        '#test' => [
+          'label' => $test->label(),
+        ],
+        '#user' => [
+          'display_name' => $user->getDisplayName(),
+        ],
+        '#full_name' => $params['full_name'] ?? '',
+        '#date' => \Drupal::service('date.formatter')->format(\Drupal::time()->getRequestTime(), 'long'),
+        '#correct' => $params['correct'],
+        '#total' => $params['total'],
+        '#score_percent' => $params['score_percent'],
+        '#questions' => $params['questions'],
+      ];
+      $rendered_html = (string) \Drupal::service('renderer')->renderPlain($html_content);
+
+      // Set the HTML body and flag it as HTML.
+      // The 'html' param is read by QuizTestPhpMail::format() to skip wordwrap,
+      // and by hook_mail_alter() to set the correct Content-Type header.
+      $message['body'][] = $rendered_html;
+      $message['params']['html'] = TRUE;
+      break;
+  }
+}
+
+/**
+ * Implements hook_mail_alter().
+ *
+ * Drupal core's MailManager::doMail() sets Content-Type to text/plain AFTER
+ * hook_mail() runs, so we must override it here. This follows the same
+ * pattern as the Webform module.
+ *
+ * @see https://www.drupal.org/project/webform
+ */
+function quiz_test_mail_alter(&$message) {
+  // Only alter emails sent by the quiz_test module.
+  if (strpos($message['id'], 'quiz_test') === 0) {
+    if (!empty($message['params']['html'])) {
+      $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
+    }
+  }
+}
+
+/**
+ * Implements hook_entity_type_build().
+ */
+function quiz_test_entity_type_build(array &$entity_types) {
+  // Add the list_builder class for QuizTest entity.
+  if (isset($entity_types['quiz_test'])) {
+    $entity_types['quiz_test']->setListBuilderClass('Drupal\quiz_test\Form\QuizTestListBuilder');
+  }
+}
+
+/**
+ * Implements hook_entity_insert().
+ */
+function quiz_test_entity_insert($entity) {
+  if ($entity->getEntityTypeId() === 'quiz_test') {
+    \Drupal::logger('quiz_test')->notice('Создан тест «@title».', [
+      '@title' => $entity->label(),
+    ]);
+  }
+  if ($entity->getEntityTypeId() === 'quiz_test_question') {
+    \Drupal::logger('quiz_test')->notice('Добавлен вопрос к тесту ID @test_id.', [
+      '@test_id' => $entity->getTestId(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_entity_delete().
+ */
+function quiz_test_entity_delete($entity) {
+  if ($entity->getEntityTypeId() === 'quiz_test') {
+    \Drupal::logger('quiz_test')->notice('Удалён тест «@title».', [
+      '@title' => $entity->label(),
+    ]);
+  }
+}
+
+/**
+ * Implements hook_entity_view_display_alter().
+ *
+ * Removes unwanted fields from entity view displays.
+ */
+function quiz_test_entity_view_display_alter(EntityViewDisplayInterface $display, array $context) {
+  if ($context['entity_type'] === 'quiz_test') {
+    $display->removeComponent('description');
+    $display->removeComponent('uid');
+    $display->removeComponent('email_recipients');
+    $display->removeComponent('email_subject');
+    $display->removeComponent('status');
+  }
+}
+
+/**
+ * Implements hook_entity_view().
+ *
+ * Ensures unwanted fields are never shown in entity views.
+ */
+function quiz_test_entity_view(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display, $view_mode) {
+  if ($entity->getEntityTypeId() === 'quiz_test') {
+    unset($build['description']);
+    unset($build['uid']);
+    unset($build['email_recipients']);
+    unset($build['email_subject']);
+    unset($build['status']);
+  }
+}
+
+/**
+ * Prepares variables for quiz test results email templates.
+ *
+ * Default template: quiz-test-results-email.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - test: The quiz test entity.
+ *   - user: The user who took the test.
+ *   - date: The formatted date string.
+ *   - correct: Number of correct answers.
+ *   - total: Total number of questions.
+ *   - score_percent: Score as percentage.
+ *   - questions: Array of question result arrays.
+ */
+function template_preprocess_quiz_test_results_email(&$variables) {
+  // Ensure the variables are properly set for the template.
+  $variables['test_label'] = isset($variables['test']['label']) ? $variables['test']['label'] : '';
+  $variables['user_display_name'] = isset($variables['user']['display_name']) ? $variables['user']['display_name'] : '';
+  $variables['full_name'] = $variables['full_name'] ?? '';
+  $variables['date'] = $variables['date'] ?? '';
+  $variables['correct'] = $variables['correct'] ?? 0;
+  $variables['total'] = $variables['total'] ?? 0;
+  $variables['score_percent'] = $variables['score_percent'] ?? 0;
+  $variables['questions'] = $variables['questions'] ?? [];
+}

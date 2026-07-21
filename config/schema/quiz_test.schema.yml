@@ -1,0 +1,13 @@
+quiz_test.settings:
+  type: config_object
+  label: 'Quiz test settings'
+  mapping:
+    access_role:
+      type: string
+      label: 'Role allowed to take tests'
+    email_recipients:
+      type: string
+      label: 'Email recipients for test results'
+    email_subject:
+      type: string
+      label: 'Email subject for test results'

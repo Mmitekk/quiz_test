@@ -1,0 +1,11 @@
+quiz_test.admin:
+  version: 1.0
+  css:
+    theme:
+      css/quiz_test.admin.css: {}
+
+quiz_test.form:
+  version: 1.0
+  css:
+    theme:
+      css/quiz_test.form.css: {}

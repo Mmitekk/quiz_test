@@ -1,0 +1,11 @@
+entity.quiz_test.add_form:
+  route_name: entity.quiz_test.add_form
+  title: 'Добавить тест'
+  appears_on:
+    - entity.quiz_test.collection
+
+quiz_test.question_add:
+  route_name: quiz_test.question_add
+  title: 'Добавить вопрос'
+  appears_on:
+    - quiz_test.question_list

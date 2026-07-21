@@ -1,0 +1,20 @@
+{{ 'Тест:'|t }} {{ test_label }}
+{{ 'Пользователь:'|t }} {{ user_display_name }}
+{% if full_name %}{{ 'ФИО:'|t }} {{ full_name }}
+{% endif %}{{ 'Дата:'|t }} {{ date }}
+{% set summary_text = 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) %}
+{{ summary_text }}
+
+========================================
+
+{% for question in questions %}
+{{ loop.index }}. {{ question.question_text }}
+   - {{ 'Ответ пользователя:'|t }} {{ question.user_answer }}
+   - {{ 'Верный ответ:'|t }} {{ question.correct_answer }}
+   {% if question.is_correct %}- {{ 'Результат: верно'|t }}{% else %}- {{ 'Результат: неверно'|t }}{% endif %}
+
+{% endfor %}
+
+========================================
+
+{{ 'Итого: @correct из @total — @score%'|t({'@correct': correct, '@total': total, '@score': score_percent}) }}
