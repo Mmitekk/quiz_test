@@ -253,6 +253,13 @@ class QuizTestQuestionForm extends ContentEntityForm {
     $entity = $this->entity;
     $test_id = $entity->getTestId();
 
+    // Apply base-field widget values (weight, etc.) through the standard
+    // entity-form mechanism. The overridden copyFormValuesToEntity() leaves
+    // answers/correct_answer untouched (their widgets are hidden via
+    // #access = FALSE and are restored afterwards); question_text/answers/
+    // correct_answer are set manually below.
+    $this->copyFormValuesToEntity($entity, $form, $form_state);
+
     if ($entity->isNew() && !empty($form_state->getValue('test_id'))) {
       $entity->set('test_id', $form_state->getValue('test_id'));
     }
