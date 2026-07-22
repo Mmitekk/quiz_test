@@ -47,6 +47,60 @@
   margin-bottom: 24px;
 }
 
+/* --- Open questions section (Part 2) --- */
+.quiz-test-open-section-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 32px 0 6px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #2c3e50;
+}
+
+.quiz-test-open-questions {
+  margin-bottom: 24px;
+}
+
+.quiz-test-open-questions .form-item,
+.quiz-test-open-questions .js-form-item {
+  border: 1px solid #e0e0e0;
+  border-left: 4px solid #2c3e50;
+  border-radius: 4px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-test-open-questions > label,
+.quiz-test-open-questions .form-item > label,
+.quiz-test-open-questions .js-form-item > label {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+  color: #222;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.quiz-test-open-question.form-text,
+.quiz-test-open-questions input[type="text"].form-text {
+  width: 100%;
+  max-width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 15px;
+  color: #222;
+  box-sizing: border-box;
+}
+
+.quiz-test-open-questions input[type="text"].form-text:focus {
+  border-color: #2c3e50;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(44, 62, 80, 0.15);
+}
+
 /* --- Individual question card --- */
 .form-item-questions .quiz-test-question,
 .form-radios.quiz-test-question,
@@ -114,7 +168,11 @@
 }
 
 #quiz-test-take-test-form .form-required::after {
-  display: none;
+  content: '*';
+  color: #c0392b;
+  margin-left: 3px;
+  font-weight: 700;
+  display: inline;
 }
 
 /* --- Radio options styling --- */

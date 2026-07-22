@@ -211,8 +211,17 @@ class QuizTest extends ContentEntityBase {
     }
     // array_values re-indexes so foreach delta is sequential (0,1,2...)
     // even if some questions were deleted and IDs have gaps.
-    $entities = \Drupal::entityTypeManager()->getStorage('quiz_test_question')->loadMultiple($ids);
-    return array_values($entities);
+    // loadMultiple() does NOT preserve the order of the passed IDs (it
+    // returns rows in primary-key order), so we must reorder the loaded
+    // entities by the weight-sorted $ids ourselves.
+    $loaded = \Drupal::entityTypeManager()->getStorage('quiz_test_question')->loadMultiple($ids);
+    $entities = [];
+    foreach ($ids as $id) {
+      if (isset($loaded[$id])) {
+        $entities[] = $loaded[$id];
+      }
+    }
+    return $entities;
   }
 
   /**
@@ -242,8 +251,16 @@ class QuizTest extends ContentEntityBase {
     if (empty($ids)) {
       return [];
     }
-    $entities = \Drupal::entityTypeManager()->getStorage('quiz_test_open_question')->loadMultiple($ids);
-    return array_values($entities);
+    // loadMultiple() returns rows in primary-key order, so reorder the loaded
+    // entities by the weight-sorted $ids ourselves.
+    $loaded = \Drupal::entityTypeManager()->getStorage('quiz_test_open_question')->loadMultiple($ids);
+    $entities = [];
+    foreach ($ids as $id) {
+      if (isset($loaded[$id])) {
+        $entities[] = $loaded[$id];
+      }
+    }
+    return $entities;
   }
 
   /**
