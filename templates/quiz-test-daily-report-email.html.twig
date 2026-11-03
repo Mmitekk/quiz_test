@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ 'Ежедневный отчёт по тестированию'|t }}</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f6f8; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #2d3748; line-height: 1.5;">
+
+  <!-- Outer wrapper -->
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f6f8; padding: 24px 0;">
+    <tr>
+      <td align="center">
+
+        <!-- Inner card -->
+        <table width="680" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
+
+          <!-- Header bar -->
+          <tr>
+            <td style="background-color: #c0392b; padding: 20px 28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #fca5a5;">{{ site_name }} &bull; {{ 'Модуль тестирования'|t }}</span>
+                    <h1 style="margin: 6px 0 0 0; padding: 0; font-size: 20px; font-weight: 700; color: #ffffff;">{{ 'Ежедневный отчёт по тестированию'|t }}</h1>
+                    <p style="margin: 4px 0 0 0; font-size: 14px; color: #fecaca;">{{ 'За дату: @date'|t({'@date': report.date_long}) }}</p>
+                  </td>
+                  {% if report.web_view_url %}
+                  <td align="right" valign="middle">
+                    <a href="{{ report.web_view_url }}" target="_blank" style="display: inline-block; background-color: #ffffff; color: #c0392b; font-size: 12px; font-weight: 700; padding: 9px 16px; border-radius: 4px; text-decoration: none; white-space: nowrap;">
+                      {{ 'Открыть на сайте &rarr;'|t }}
+                    </a>
+                  </td>
+                  {% endif %}
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- KPI Summary cards -->
+          <tr>
+            <td style="padding: 24px 28px 12px 28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; text-align: center;">
+                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">{{ 'Заполнено тестов'|t }}</div>
+                    <div style="font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 4px;">{{ report.total_submissions }}</div>
+                  </td>
+                  <td width="2%">&nbsp;</td>
+                  <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; text-align: center;">
+                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">{{ 'Участников'|t }}</div>
+                    <div style="font-size: 26px; font-weight: 800; color: #0f172a; margin-top: 4px;">{{ report.unique_respondents_count }}</div>
+                  </td>
+                  <td width="2%">&nbsp;</td>
+                  <td width="32%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 14px 16px; text-align: center;">
+                    <div style="font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; letter-spacing: 0.5px;">{{ 'Средний балл'|t }}</div>
+                    <div style="font-size: 26px; font-weight: 800; color: {% if report.average_score is not null and report.average_score >= 50 %}#16a34a{% else %}#0f172a{% endif %}; margin-top: 4px;">
+                      {% if report.average_score is not null %}{{ report.average_score }}%{% else %}&mdash;{% endif %}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Summary Table -->
+          {% if report.submissions %}
+          <tr>
+            <td style="padding: 12px 28px 20px 28px;">
+              <h2 style="margin: 0 0 12px 0; font-size: 15px; font-weight: 700; color: #1e293b; text-transform: uppercase; letter-spacing: 0.5px;">
+                {{ 'Сводка прохождений за день'|t }}
+              </h2>
+              <table width="100%" cellpadding="8" cellspacing="0" border="0" style="border-collapse: collapse; font-size: 13px; border: 1px solid #e2e8f0;">
+                <thead>
+                  <tr style="background-color: #f1f5f9; color: #475569; font-weight: 700; border-bottom: 2px solid #cbd5e1;">
+                    <th align="left" style="padding: 10px 12px;">{{ 'Время'|t }}</th>
+                    <th align="left" style="padding: 10px 12px;">{{ 'Тест'|t }}</th>
+                    <th align="left" style="padding: 10px 12px;">{{ 'ФИО (из формы)'|t }}</th>
+                    <th align="left" style="padding: 10px 12px;">{{ 'Пользователь сайта'|t }}</th>
+                    <th align="center" style="padding: 10px 12px;">{{ 'Результат'|t }}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for sub in report.submissions %}
+                  <tr style="border-bottom: 1px solid #e2e8f0; {% if loop.index is odd %}background-color: #ffffff;{% else %}background-color: #fafafa;{% endif %}">
+                    <td style="padding: 10px 12px; color: #64748b; font-size: 12px; white-space: nowrap;">{{ sub.created_time }}</td>
+                    <td style="padding: 10px 12px; font-weight: 600; color: #0f172a;">{{ sub.test_title }}</td>
+                    <td style="padding: 10px 12px; font-weight: 700; color: #1e293b;">
+                      {% if sub.full_name %}{{ sub.full_name }}{% else %}<span style="color: #94a3b8;">&mdash;</span>{% endif %}
+                    </td>
+                    <td style="padding: 10px 12px; color: #475569;">
+                      {{ sub.user_display_name }}
+                      {% if sub.user_email %}<br/><span style="font-size: 11px; color: #94a3b8;">{{ sub.user_email }}</span>{% endif %}
+                    </td>
+                    <td align="center" style="padding: 10px 12px; white-space: nowrap;">
+                      {% if sub.has_score %}
+                        {% if sub.score_percent >= 50 %}
+                          <span style="display: inline-block; background-color: #dcfce7; color: #15803d; font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: 4px;">
+                            {{ sub.correct }}/{{ sub.total }} ({{ sub.score_percent }}%)
+                          </span>
+                        {% else %}
+                          <span style="display: inline-block; background-color: #fee2e2; color: #b91c1c; font-weight: 700; font-size: 12px; padding: 3px 8px; border-radius: 4px;">
+                            {{ sub.correct }}/{{ sub.total }} ({{ sub.score_percent }}%)
+                          </span>
+                        {% endif %}
+                      {% else %}
+                        <span style="color: #94a3b8;">&mdash;</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Detailed submissions with questions and answers -->
+          {% if include_details %}
+          <tr>
+            <td style="padding: 8px 28px 24px 28px;">
+              <h2 style="margin: 16px 0 16px 0; font-size: 16px; font-weight: 700; color: #c0392b; border-bottom: 2px solid #c0392b; padding-bottom: 8px;">
+                {{ 'Детальные результаты по каждому заполнению'|t }}
+              </h2>
+
+              {% for sub in report.submissions %}
+              <!-- Submission card -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px; border: 1px solid #cbd5e1; border-radius: 6px; overflow: hidden;">
+                <!-- Card Header -->
+                <tr style="background-color: #f1f5f9; border-bottom: 1px solid #cbd5e1;">
+                  <td style="padding: 12px 18px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td>
+                          <span style="font-size: 15px; font-weight: 700; color: #0f172a;">{{ loop.index }}. {{ sub.test_title }}</span>
+                          <div style="font-size: 13px; color: #334155; margin-top: 4px;">
+                            <strong>{{ 'ФИО:'|t }}</strong> <span style="color: #0f172a; font-weight: 700;">{{ sub.full_name }}</span> &bull;
+                            <strong>{{ 'Пользователь:'|t }}</strong> {{ sub.user_display_name }} &bull;
+                            <strong>{{ 'Время:'|t }}</strong> {{ sub.created_time }}
+                          </div>
+                        </td>
+                        {% if sub.has_score %}
+                        <td align="right" valign="top">
+                          <span style="font-size: 14px; font-weight: 800; color: {% if sub.score_percent >= 50 %}#15803d{% else %}#b91c1c{% endif %}; background-color: {% if sub.score_percent >= 50 %}#dcfce7{% else %}#fee2e2{% endif %}; padding: 4px 10px; border-radius: 4px;">
+                            {{ sub.correct }}/{{ sub.total }} ({{ sub.score_percent }}%)
+                          </span>
+                        </td>
+                        {% endif %}
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+
+                <!-- Questions and answers -->
+                <tr>
+                  <td style="padding: 16px 18px; background-color: #ffffff;">
+                    <!-- Choice questions -->
+                    {% if sub.choice_questions %}
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-bottom: 10px;">
+                      {{ 'Тестовые вопросы:'|t }}
+                    </div>
+                    {% for q in sub.choice_questions %}
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px dashed #e2e8f0;">
+                      <tr>
+                        <td style="font-size: 13px; font-weight: 600; color: #1e293b;">
+                          {{ loop.index }}) {{ q.question }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top: 4px; padding-left: 12px; font-size: 13px;">
+                          <table width="100%" cellpadding="2" cellspacing="0" border="0">
+                            <tr>
+                              <td width="150" style="color: #64748b;">{{ 'Ответ пользователя:'|t }}</td>
+                              <td>
+                                <strong style="color: {% if q.is_correct %}#15803d{% else %}#b91c1c{% endif %};">
+                                  {{ q.user_answer }}
+                                </strong>
+                                {% if q.is_correct %}
+                                  <span style="color: #16a34a; font-weight: 700; margin-left: 6px;">&check; {{ 'Верно'|t }}</span>
+                                {% else %}
+                                  <span style="color: #dc2626; font-weight: 700; margin-left: 6px;">&cross; {{ 'Неверно'|t }}</span>
+                                {% endif %}
+                              </td>
+                            </tr>
+                            {% if not q.is_correct and q.correct_answer %}
+                            <tr>
+                              <td style="color: #64748b;">{{ 'Правильный ответ:'|t }}</td>
+                              <td style="color: #15803d; font-weight: 600;">{{ q.correct_answer }}</td>
+                            </tr>
+                            {% endif %}
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                    {% endfor %}
+                    {% endif %}
+
+                    <!-- Open questions -->
+                    {% if sub.open_questions %}
+                    <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; color: #64748b; margin-top: 14px; margin-bottom: 10px;">
+                      {{ 'Открытые вопросы (ответ в свободной форме):'|t }}
+                    </div>
+                    {% for oq in sub.open_questions %}
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px dashed #e2e8f0;">
+                      <tr>
+                        <td style="font-size: 13px; font-weight: 600; color: #1e293b;">
+                          {{ loop.index }}) {{ oq.question }}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-top: 6px; padding-left: 12px;">
+                          <div style="background-color: #f8fafc; border-left: 3px solid #3b82f6; padding: 8px 12px; font-size: 13px; color: #0f172a; border-radius: 0 4px 4px 0;">
+                            {% if oq.user_answer %}
+                              {{ oq.user_answer|nl2br }}
+                            {% else %}
+                              <span style="color: #94a3b8; font-style: italic;">{{ 'Нет ответа'|t }}</span>
+                            {% endif %}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                    {% endfor %}
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% endfor %}
+            </td>
+          </tr>
+          {% endif %}
+
+          {% else %}
+          <!-- Empty state -->
+          <tr>
+            <td style="padding: 24px 28px; text-align: center; color: #64748b;">
+              <p style="margin: 0; font-size: 15px;">{{ 'За выбранный день прохождений тестов не зафиксировано.'|t }}</p>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Footer -->
+          <tr>
+            <td style="background-color: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 28px; font-size: 12px; color: #64748b;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td>
+                    {{ 'Отчёт сгенерирован автоматически модулем «Тестирование» сайта'|t }} <strong>{{ site_name }}</strong>.
+                  </td>
+                  {% if report.web_view_url %}
+                  <td align="right">
+                    <a href="{{ report.web_view_url }}" target="_blank" style="color: #c0392b; text-decoration: underline;">
+                      {{ 'Открыть веб-версию отчёта'|t }}
+                    </a>
+                  </td>
+                  {% endif %}
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+        </table>
+        <!-- /Inner card -->
+
+      </td>
+    </tr>
+  </table>
+
+</body>
+</html>

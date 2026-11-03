@@ -28,6 +28,8 @@ function quiz_test_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dd>' . t('На вкладке «Открытые вопросы» можно добавить вторую, опциональную часть теста — открытые вопросы со свободным ответом. Эта часть появляется в форме прохождения и в письме с результатами только при наличии хотя бы одного открытого вопроса. Открытые ответы не влияют на процентный балл.', []) . '</dd>';
       $output .= '<dt>' . t('Настройки') . '</dt>';
       $output .= '<dd>' . t('Перейдите на <a href=":settings">Администрирование » Конфигурация » Настройки тестирования</a>, чтобы указать роль для доступа к тестам и параметры email-уведомлений.', [':settings' => '/admin/config/quiz-test/settings']) . '</dd>';
+      $output .= '<dt>' . t('Ежедневный отчёт') . '</dt>';
+      $output .= '<dd>' . t('Перейдите на <a href=":report">Администрирование » Конфигурация » Ежедневный отчёт</a> для настройки автоматической рассылки сводки за день по электронной почте.', [':report' => '/admin/config/quiz-test/daily-report']) . '</dd>';
       $output .= '<dt>' . t('Прохождение тестов') . '</dt>';
       $output .= '<dd>' . t('Пользователи с назначенной ролью могут проходить тесты по адресу <em>/quiz-test/{test-id}</em>. После отправки ответов результаты будут отправлены на настроенные адреса электронной почты и сохранены в журнале <a href=":results">Результаты тестирования</a>.', [':results' => '/admin/quiz-test/results']) . '</dd>';
       $output .= '</dl>';
@@ -41,6 +43,9 @@ function quiz_test_help($route_name, RouteMatchInterface $route_match) {
 
     case 'quiz_test.settings':
       return '<p>' . t('Настройки модуля «Тестирование». Укажите роль, которой разрешено проходить тесты, и параметры email-уведомлений о результатах.') . '</p>';
+
+    case 'quiz_test.daily_report_settings':
+      return '<p>' . t('Настройки автоматической рассылки сводного отчёта по тестированию за день. Укажите email-адреса получателей и время отправки в конце дня.') . '</p>';
   }
 }
 
@@ -63,6 +68,15 @@ function quiz_test_theme($existing, $type, $theme, $path) {
         'has_score' => TRUE,
       ],
       'template' => 'quiz-test-results-email',
+    ],
+    'quiz_test_daily_report_email' => [
+      'variables' => [
+        'report' => [],
+        'subject' => '',
+        'include_details' => TRUE,
+        'site_name' => '',
+      ],
+      'template' => 'quiz-test-daily-report-email',
     ],
   ];
 }
@@ -102,8 +116,23 @@ function quiz_test_mail($key, &$message, $params) {
       $rendered_html = (string) \Drupal::service('renderer')->renderPlain($html_content);
 
       // Set the HTML body and flag it as HTML.
-      // The 'html' param is read by QuizTestPhpMail::format() to skip wordwrap,
-      // and by hook_mail_alter() to set the correct Content-Type header.
+      $message['body'][] = $rendered_html;
+      $message['params']['html'] = TRUE;
+      break;
+
+    case 'daily_report':
+      $message['subject'] = $params['subject'];
+      $message['from'] = \Drupal::config('system.site')->get('mail');
+
+      $html_content = [
+        '#theme' => 'quiz_test_daily_report_email',
+        '#report' => $params['report'],
+        '#subject' => $params['subject'],
+        '#include_details' => $params['include_details'] ?? TRUE,
+        '#site_name' => $params['site_name'] ?? \Drupal::config('system.site')->get('name'),
+      ];
+      $rendered_html = (string) \Drupal::service('renderer')->renderPlain($html_content);
+
       $message['body'][] = $rendered_html;
       $message['params']['html'] = TRUE;
       break;
@@ -125,6 +154,66 @@ function quiz_test_mail_alter(&$message) {
     if (!empty($message['params']['html'])) {
       $message['headers']['Content-Type'] = 'text/html; charset=UTF-8';
     }
+  }
+}
+
+/**
+ * Implements hook_cron().
+ *
+ * Checks if the daily report should be sent at the end of the day.
+ */
+function quiz_test_cron() {
+  $config = \Drupal::config('quiz_test.daily_report.settings');
+  if (!$config->get('enabled')) {
+    return;
+  }
+
+  $recipients = trim((string) $config->get('recipients'));
+  if (empty($recipients)) {
+    return;
+  }
+
+  // Get current time in the site timezone.
+  $timezone = \Drupal::config('system.date')->get('timezone.default') ?: date_default_timezone_get();
+  try {
+    $now = new \DateTime('now', new \DateTimeZone($timezone));
+  }
+  catch (\Exception $e) {
+    return;
+  }
+
+  // Check weekdays only condition (1 = Monday, 7 = Sunday).
+  if ($config->get('weekdays_only')) {
+    $day_of_week = (int) $now->format('N');
+    if ($day_of_week > 5) {
+      return;
+    }
+  }
+
+  // Check if current hour has reached the configured send hour.
+  $send_hour = $config->get('send_hour') !== NULL ? (int) $config->get('send_hour') : 20;
+  $current_hour = (int) $now->format('G');
+  if ($current_hour < $send_hour) {
+    return;
+  }
+
+  // Check if report has already been sent today.
+  $today_str = $now->format('Y-m-d');
+  $last_sent = (string) $config->get('last_sent_date');
+  if ($last_sent === $today_str) {
+    return;
+  }
+
+  // Dispatch daily report.
+  try {
+    /** @var \Drupal\quiz_test\Service\QuizTestDailyReportService $report_service */
+    $report_service = \Drupal::service('quiz_test.daily_report');
+    $report_service->sendDailyReport($now);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('quiz_test')->error('Ошибка при автоматической отправке ежедневного отчёта в Cron: @message', [
+      '@message' => $e->getMessage(),
+    ]);
   }
 }
 
@@ -159,8 +248,7 @@ function quiz_test_entity_insert($entity) {
  */
 function quiz_test_entity_delete($entity) {
   if ($entity->getEntityTypeId() === 'quiz_test') {
-    // Cascade: remove the submission log entries of the deleted test. The
-    // table may not exist yet if database updates are still pending.
+    // Cascade: remove the submission log entries of the deleted test.
     try {
       $storage = \Drupal::entityTypeManager()->getStorage('quiz_test_result');
       $ids = $storage->getQuery()
@@ -218,19 +306,8 @@ function quiz_test_entity_view(array &$build, EntityInterface $entity, EntityVie
  * Prepares variables for quiz test results email templates.
  *
  * Default template: quiz-test-results-email.html.twig.
- *
- * @param array $variables
- *   An associative array containing:
- *   - test: The quiz test entity.
- *   - user: The user who took the test.
- *   - date: The formatted date string.
- *   - correct: Number of correct answers.
- *   - total: Total number of questions.
- *   - score_percent: Score as percentage.
- *   - questions: Array of question result arrays.
  */
 function template_preprocess_quiz_test_results_email(&$variables) {
-  // Ensure the variables are properly set for the template.
   $variables['test_label'] = isset($variables['test']['label']) ? $variables['test']['label'] : '';
   $variables['user_display_name'] = isset($variables['user']['display_name']) ? $variables['user']['display_name'] : '';
   $variables['full_name'] = $variables['full_name'] ?? '';

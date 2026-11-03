@@ -1,0 +1,10 @@
+services:
+  quiz_test.daily_report:
+    class: Drupal\quiz_test\Service\QuizTestDailyReportService
+    arguments:
+      - '@entity_type.manager'
+      - '@config.factory'
+      - '@plugin.manager.mail'
+      - '@date.formatter'
+      - '@renderer'
+      - '@logger.factory'

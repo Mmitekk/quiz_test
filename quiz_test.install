@@ -357,6 +357,19 @@ function quiz_test_install() {
     ->set('access_role', '')
     ->save();
 
+  // Set default configuration for daily summary report.
+  \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings')
+    ->set('enabled', TRUE)
+    ->set('recipients', '')
+    ->set('subject', 'Ежедневный отчёт по тестированию за @date — заполнено тестов: @count')
+    ->set('send_hour', 20)
+    ->set('weekdays_only', FALSE)
+    ->set('include_details', TRUE)
+    ->set('send_empty', FALSE)
+    ->set('last_sent_date', '')
+    ->set('access_token', \Drupal\Component\Utility\Crypt::randomBytesBase64(24))
+    ->save();
+
   // Configure the quiz_test module to use our custom HTML mail plugin.
   // This prevents Drupal core's PhpMail from word-wrapping HTML content.
   $mail_config = \Drupal::configFactory()->getEditable('system.mail');
@@ -373,6 +386,7 @@ function quiz_test_install() {
 function quiz_test_uninstall() {
   // Clean up configuration.
   \Drupal::configFactory()->getEditable('quiz_test.settings')->delete();
+  \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings')->delete();
 
   // Remove our custom mail plugin from system.mail configuration.
   $mail_config = \Drupal::configFactory()->getEditable('system.mail');
@@ -746,8 +760,6 @@ function quiz_test_update_8011() {
     }
 
     // Ultimate fallback: create the table directly from the schema spec.
-    // This guarantees the table exists even if the entity type could not be
-    // installed through the definition update manager.
     if (!$schema->tableExists('quiz_test_open_question')) {
       $schema->createTable('quiz_test_open_question', _quiz_test_open_question_schema());
     }
@@ -796,4 +808,26 @@ function quiz_test_update_8012() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
   return t('Installed the results log (quiz_test_result) for the admin results page.');
+}
+
+/**
+ * Initialize configuration for daily summary report.
+ */
+function quiz_test_update_8013() {
+  $config = \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings');
+  if ($config->isNew() || empty($config->get('access_token'))) {
+    $config
+      ->set('enabled', TRUE)
+      ->set('recipients', '')
+      ->set('subject', 'Ежедневный отчёт по тестированию за @date — заполнено тестов: @count')
+      ->set('send_hour', 20)
+      ->set('weekdays_only', FALSE)
+      ->set('include_details', TRUE)
+      ->set('send_empty', FALSE)
+      ->set('last_sent_date', '')
+      ->set('access_token', \Drupal\Component\Utility\Crypt::randomBytesBase64(24))
+      ->save();
+  }
+
+  return t('Initialized configuration for the daily summary report.');
 }

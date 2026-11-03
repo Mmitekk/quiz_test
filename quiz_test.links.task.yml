@@ -21,8 +21,16 @@ quiz_test.open_questions_tab:
 # Tab for settings page.
 quiz_test.settings_tab:
   route_name: quiz_test.settings
-  title: 'Настройки'
+  title: 'Общие настройки'
   base_route: quiz_test.settings
+  weight: 0
+
+# Tab for daily report on settings page.
+quiz_test.daily_report_settings_tab:
+  route_name: quiz_test.daily_report_settings
+  title: 'Ежедневный отчёт'
+  base_route: quiz_test.settings
+  weight: 1
 
 # Default tab on the tests collection page.
 entity.quiz_test.collection_default_tab:
@@ -36,3 +44,10 @@ quiz_test.results_tab:
   title: 'Результаты'
   base_route: entity.quiz_test.collection
   weight: 1
+
+# Daily report tab on tests collection page.
+quiz_test.collection_daily_report_tab:
+  route_name: quiz_test.daily_report_settings
+  title: 'Ежедневный отчёт'
+  base_route: entity.quiz_test.collection
+  weight: 2

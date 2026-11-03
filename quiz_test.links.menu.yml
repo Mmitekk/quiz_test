@@ -18,3 +18,10 @@ quiz_test.settings:
   parent: system.admin_config
   route_name: quiz_test.settings
   weight: 100
+
+quiz_test.daily_report_settings:
+  title: 'Ежедневный отчёт'
+  description: 'Настройка расписания и получателей ежедневного отчёта по тестированию.'
+  parent: system.admin_config
+  route_name: quiz_test.daily_report_settings
+  weight: 101

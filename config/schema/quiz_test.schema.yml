@@ -11,3 +11,35 @@ quiz_test.settings:
     email_subject:
       type: string
       label: 'Email subject for test results'
+
+quiz_test.daily_report.settings:
+  type: config_object
+  label: 'Quiz test daily summary report settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enable daily summary reports'
+    recipients:
+      type: string
+      label: 'Email recipients for daily reports'
+    subject:
+      type: string
+      label: 'Subject line template for daily report email'
+    send_hour:
+      type: integer
+      label: 'Hour of day to send the report (0-23)'
+    weekdays_only:
+      type: boolean
+      label: 'Send on weekdays only (Mon-Fri)'
+    include_details:
+      type: boolean
+      label: 'Include full question and answer breakdown'
+    send_empty:
+      type: boolean
+      label: 'Send report even if no tests were taken'
+    last_sent_date:
+      type: string
+      label: 'Date (Y-m-d) of last sent report'
+    access_token:
+      type: string
+      label: 'Secret token for accessing web report without authentication'

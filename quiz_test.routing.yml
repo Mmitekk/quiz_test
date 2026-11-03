@@ -86,6 +86,32 @@ quiz_test.result_view:
   requirements:
     _permission: 'administer quiz tests'
 
+# --- Daily summary report (admin settings & web view) ---
+
+quiz_test.daily_report_settings:
+  path: '/admin/config/quiz-test/daily-report'
+  defaults:
+    _form: '\Drupal\quiz_test\Form\QuizTestDailyReportSettingsForm'
+    _title: 'Ежедневный отчёт'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.daily_report_view_today:
+  path: '/admin/quiz-test/daily-report/today'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::viewToday'
+    _title: 'Отчёт по тестированию за сегодня'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.daily_report_view:
+  path: '/quiz-test/daily-report/{date}'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::viewReport'
+    _title_callback: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::reportTitle'
+  requirements:
+    _custom_access: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::accessReport'
+
 quiz_test.settings:
   path: '/admin/config/quiz-test/settings'
   defaults:

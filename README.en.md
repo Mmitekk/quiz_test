@@ -22,6 +22,7 @@ A Drupal 9 / 10 / 11 module that provides a complete online testing system: admi
 - **Tabs on test edit** — Edit / Questions / Settings
 - **Result privacy** — detailed results are sent by email only; the user sees a generic thank-you page
 - **Submission log (since 1.2.0)** — an admin page showing who took which test and when, with the score. Each submission has a detailed report (answers to every question, including open ones), a test/full-name filter, and a pager. Question texts and options are snapshotted at submission time, so history stays accurate even after questions are edited
+- **Daily summary report (since 1.3.0)** — automated end-of-day summary email (customizable hour, e.g. 20:00 or 18:00) dispatched via Cron to email addresses configured in the dedicated admin panel. The report includes key KPIs, a participant table (website username and submitted Full Name / ФИО), scores, a direct token-secured web link, and a complete breakdown of all answered multiple-choice and open-ended questions
 - **Tempstore** — results are stored in `tempstore.private` for proper POST-redirect handling
 - **Logging** — watchdog logs on test/question creation and deletion
 - **Cascading config** — per-test email settings override the global defaults
@@ -55,9 +56,8 @@ Composer will automatically download the module into the correct directory (`mod
 
 2. **Install the module, pinning a concrete stable version** (not dev):
    ```bash
-   composer require "mmitekk/quiz_test:^1.0"
+   composer require "mmitekk/quiz_test:^1.3"
    ```
-   This installs release **1.0.0** (the `v1.0.0` tag). Composer installs the actual module version, not `dev-main` — because the repository ships git tags and the `^1.0` constraint resolves to a tagged release.
    The module will be placed in `web/modules/custom/quiz_test/` (in a standard `drupal/recommended-project` this is `modules/custom/` relative to the site root).
 
 3. **Enable the module** via Drush or the admin UI:
@@ -66,18 +66,8 @@ Composer will automatically download the module into the correct directory (`mod
    ```
 
 4. On install the module automatically:
-   - creates the `quiz_test.settings` configuration with default values;
+   - creates the `quiz_test.settings` and `quiz_test.daily_report.settings` configurations with default values;
    - registers its custom HTML mail plugin (`quiz_test_php_mail`) in `system.mail`.
-
-**About the install path.** The standard `drupal/recommended-project` template already maps the `drupal-custom-module` type to `web/modules/custom/{$name}` — no extra configuration is needed. If Composer installs the module somewhere else, add (or adjust) the `installer-paths` section in your **project's** `composer.json`:
-```json
-"extra": {
-    "installer-paths": {
-        "web/modules/custom/{$name}": ["type:drupal-custom-module"]
-    }
-}
-```
-If your site root is the project root (no `web/` directory), use `"modules/custom/{$name}"` instead of `"web/modules/custom/{$name}"`.
 
 **Updating via Composer:**
 ```bash
@@ -88,198 +78,180 @@ drush cr
 
 ### Option 2: Manually
 
-1. Download the archive of the release you need: [https://github.com/Mmitekk/quiz_test/releases](https://github.com/Mmitekk/quiz_test/releases)
-2. Extract and rename the folder to `quiz_test`
-3. Copy the `quiz_test` folder into the `modules/custom/` directory of your Drupal installation
+1. Download the archive for the required release: [https://github.com/Mmitekk/quiz_test/releases](https://github.com/Mmitekk/quiz_test/releases)
+2. Unpack and rename the folder to `quiz_test`
+3. Copy `quiz_test` into the `modules/custom/` folder of your Drupal installation
 4. Enable the module via the admin UI (`/admin/modules`) or Drush:
    ```bash
    drush en quiz_test -y
    ```
 
-## Configuration & usage
+## Configuration & Usage
 
 ### Step 1. Configure module settings
 
-Go to **Administration → Configuration → Quiz Test Settings** (`/admin/config/quiz-test/settings`):
+Navigate to **Administration → Configuration → Quiz Test settings** (`/admin/config/quiz-test/settings`):
 
 | Setting | Description |
 |---------|-------------|
-| **Access role** | Role allowed to take tests (administrators always have access) |
-| **Default email recipients** | Comma-separated default recipients for test results |
-| **Default email subject** | Default subject line with `@test_title`, `@user_name`, `@score` tokens |
+| **Role for access** | Role permitted to take tests (administrators always have access) |
+| **Default email recipients** | Comma-separated email addresses to receive test results |
+| **Default email subject** | Subject template with placeholders `@test_title`, `@user_name`, `@score` |
 
 ### Step 2. Create a test
 
 1. Go to **Administration → Content → Tests** (`/admin/quiz-test`)
 2. Click **Add test**
-3. Fill in:
-   - **Title** — test name shown to users
-   - **Description** — instructions or description shown before the test
-   - **Email recipients** — (optional) override global recipients for this test
-   - **Email subject** — (optional) override the global subject for this test
-   - **Published** — whether the test is available for taking
-4. Save the test
+3. Fill in Title, Description, optional recipient overrides, and publication status.
+4. Save the test.
 
 ### Step 3. Add questions
 
-1. On the test edit page, switch to the **Questions** tab
-2. Click **Add question**
-3. Fill in:
-   - **Question text** — the question wording
-   - **Answers** — add answer options (minimum 2). Use `+ Add option` to add more, click `Remove` to delete
-   - **Correct answer** — select the correct option from the dropdown
-   - **Weight** — sort order (lower = higher)
-4. Save the question
-5. Repeat for all questions
+1. In the test edit screen, switch to the **Questions** tab.
+2. Click **Add question**.
+3. Fill in Question text, add answer options (min 2), and designate the correct answer.
+4. Save the question.
 
 ### Step 3a. Add open questions (optional)
 
-The open part appears in the take form and in the results email **only** if the test has at least one open question. If there are none, the part is fully hidden.
+1. Switch to the **Open questions** tab on the test edit page.
+2. Click **Add open question**, define the prompt, and choose whether it is required.
+3. Save the open question.
 
-1. On the test edit page, switch to the **Open questions** tab
-2. Click **Add open question**
-3. Fill in:
-   - **Question text** — the open question wording (e.g. a calculation)
-   - **Required to fill** — when enabled, the user cannot submit the test without filling this field (off by default)
-   - **Weight** — sort order (lower = higher)
-4. Save the question
-5. Repeat for all open questions
+### Step 4. Take the test
 
-### Step 4. Take a test
-
-1. Users with the configured role visit `/quiz-test/{test-id}`
-2. They enter their full name and answer all questions
-3. After submission:
-   - results are scored automatically;
-   - an HTML email with detailed results is sent to the configured recipients;
-   - the submission is stored in the **Submission log** (`/admin/quiz-test/results`);
-   - the user sees a thank-you page.
+1. Authorized users visit `/quiz-test/{test-id}`.
+2. They enter their Full Name (ФИО) and answer all questions.
+3. Submissions trigger scoring, instant email notifications, and are recorded in the submission log.
 
 ### Step 5. Review the submission log
 
-1. Go to **Administration → Content → Submission log** (`/admin/quiz-test/results`) or open the **Results** tab on the test list page
-2. The table shows: date, site account, full name, test, score. Filter by test and by name substring
-3. Click **Results** in a row to open the detailed report: the user's answer vs the correct answer for every question (free-text answers for open questions)
-4. A single submission can be deleted from the report page or from the list. Deleting a test also removes its submission log
+1. Visit **Administration → Content → Quiz results** (`/admin/quiz-test/results`).
+2. Filter by test or participant name, and click **Results** to view detailed question-by-question responses.
+
+### Step 6. Configure daily summary reports (since 1.3.0)
+
+Navigate to **Administration → Configuration → Quiz Test Daily Report** (`/admin/config/quiz-test/daily-report`):
+
+1. **Enable Daily Report**: Toggle automatic end-of-day dispatch via Cron.
+2. **Email Recipients**: Enter recipient email addresses (comma or newline separated).
+3. **Dispatch Schedule (Send Hour)**: Select the end-of-day trigger hour (`00:00` to `23:00`, default `20:00`). Dispatched on the first cron run after the chosen hour.
+4. **Weekdays Only**: Optionally skip sending reports on Saturdays and Sundays.
+5. **Content Options**: Toggle full question breakdown vs. summary-only, and toggle empty day skipping.
+6. **Send Now Button**: Instantly tests email dispatch for today's submissions without waiting for cron.
+7. **Web View Link**: Both the admin settings page and all sent emails include a secure tokenized link to view the report in a browser without requiring admin authentication.
 
 ## Permissions
 
-| Permission | Description | Restrict access |
+| Permission | Description | Restricted |
 |------------|-------------|:---:|
-| `administer quiz tests` | Create, edit, delete tests and questions | Yes |
+| `administer quiz tests` | Create, edit, delete tests, questions, access results log and report settings | Yes |
 | `take quiz tests` | Take tests on the site | — |
 
-Configure at **Administration → People → Permissions** (`/admin/people/permissions`).
+Configured under **Administration → People → Permissions** (`/admin/people/permissions`).
 
 ## Routes
 
 | Path | Route | Description |
 |------|-------|-------------|
-| `/admin/quiz-test` | `entity.quiz_test.collection` | Test list (admin) |
-| `/admin/quiz-test/add` | `entity.quiz_test.add_form` | Add new test |
+| `/admin/quiz-test` | `entity.quiz_test.collection` | Admin test list |
+| `/admin/quiz-test/add` | `entity.quiz_test.add_form` | Add test |
 | `/admin/quiz-test/{id}/edit` | `entity.quiz_test.edit_form` | Edit test |
 | `/admin/quiz-test/{id}/delete` | `entity.quiz_test.delete_form` | Delete test |
-| `/admin/quiz-test/{id}/questions` | `quiz_test.question_list` | Question list for a test |
+| `/admin/quiz-test/{id}/questions` | `quiz_test.question_list` | Questions list |
 | `/admin/quiz-test/{id}/questions/add` | `quiz_test.question_add` | Add question |
 | `/admin/quiz-test/{id}/questions/{qid}/edit` | `quiz_test.question_edit` | Edit question |
 | `/admin/quiz-test/{id}/questions/{qid}/delete` | `quiz_test.question_delete` | Delete question |
-| `/admin/quiz-test/{id}/open-questions` | `quiz_test.open_question_list` | Open-question list for a test |
+| `/admin/quiz-test/{id}/open-questions` | `quiz_test.open_question_list` | Open questions list |
 | `/admin/quiz-test/{id}/open-questions/add` | `quiz_test.open_question_add` | Add open question |
 | `/admin/quiz-test/{id}/open-questions/{qid}/edit` | `quiz_test.open_question_edit` | Edit open question |
 | `/admin/quiz-test/{id}/open-questions/{qid}/delete` | `quiz_test.open_question_delete` | Delete open question |
-| `/admin/quiz-test/results` | `quiz_test.results` | Submission log (who, when, which test) |
+| `/admin/quiz-test/results` | `quiz_test.results` | Submission log |
 | `/admin/quiz-test/results/{id}` | `quiz_test.result_view` | Detailed submission report |
-| `/admin/quiz-test/results/{id}/delete` | `entity.quiz_test_result.delete_form` | Delete a submission |
-| `/admin/config/quiz-test/settings` | `quiz_test.settings` | Module settings |
-| `/quiz-test/{id}` | `quiz_test.take_test` | Take test (public) |
+| `/admin/quiz-test/results/{id}/delete` | `entity.quiz_test_result.delete_form` | Delete submission record |
+| `/admin/config/quiz-test/settings` | `quiz_test.settings` | General settings |
+| `/admin/config/quiz-test/daily-report` | `quiz_test.daily_report_settings` | Daily report & schedule settings |
+| `/admin/quiz-test/daily-report/today` | `quiz_test.daily_report_view_today` | View today's report (admin) |
+| `/quiz-test/daily-report/{date}` | `quiz_test.daily_report_view` | Web report view by date (secured token or admin) |
+| `/quiz-test/{id}` | `quiz_test.take_test` | Public test-taking form |
 
-## Module structure
+## Module Structure
 
 ```
 quiz_test/
-├── quiz_test.info.yml                  — Module info
-├── quiz_test.module                    — Hooks (help, theme, mail, entity hooks)
-├── quiz_test.install                   — Schema, install/uninstall, updates
-├── quiz_test.routing.yml               — Routes (question CRUD, settings, take test)
-├── quiz_test.permissions.yml           — Permissions
-├── quiz_test.links.action.yml          — Action links (Add test, Add question)
-├── quiz_test.links.menu.yml            — Menu items
-├── quiz_test.links.task.yml            — Local tasks (tabs: Edit, Questions, Settings)
-├── quiz_test.libraries.yml             — CSS libraries
+├── quiz_test.info.yml                  — Module metadata
+├── quiz_test.module                    — Hooks (help, theme, mail, cron, entity hooks)
+├── quiz_test.install                   — Schema, install/uninstall, updates (8012, 8013)
+├── quiz_test.services.yml              — Service definitions (quiz_test.daily_report)
+├── quiz_test.routing.yml               — Routes (CRUD, settings, reports, take test)
+├── quiz_test.permissions.yml           — User permissions
+├── quiz_test.links.action.yml          — Action links
+├── quiz_test.links.menu.yml            — Menu links (including Daily Report)
+├── quiz_test.links.task.yml            — Local tasks / tabs (Tests, Results, Settings, Daily Report)
+├── quiz_test.libraries.yml             — Asset libraries
 ├── composer.json                       — Composer metadata
 ├── config/
-│   └── schema/quiz_test.schema.yml     — Config schema
+│   └── schema/quiz_test.schema.yml     — Config schema (including daily_report)
 ├── css/
-│   ├── quiz_test.admin.css             — Admin styles (questions table, answers form)
-│   └── quiz_test.form.css              — Public test form styles
+│   ├── quiz_test.admin.css             — Admin styles
+│   └── quiz_test.form.css              — Public form styles
 ├── templates/
-│   ├── quiz-test-results-email.html.twig   — HTML email template
-│   └── quiz-test-results-email.txt.twig    — Plain-text email template
+│   ├── quiz-test-results-email.html.twig   — Single submission HTML email template
+│   ├── quiz-test-results-email.txt.twig    — Fallback plain text email template
+│   └── quiz-test-daily-report-email.html.twig — Daily summary HTML report template
 └── src/
     ├── Controller/
-    │   ├── QuizTestController.php       — Question CRUD + take-test controller
-    │   └── QuizTestResultController.php — Submission log + detailed report controller
+    │   ├── QuizTestController.php       — Questions CRUD and test-taking controller
+    │   ├── QuizTestResultController.php — Submission log & single result controller
+    │   └── QuizTestDailyReportController.php — Daily report web view controller
     ├── Entity/
-    │   ├── QuizTest.php                 — Test entity (title, description, email, status)
-    │   ├── QuizTestQuestion.php         — Question entity (test_id, question_text, answers JSON, correct_answer, weight)
-    │   ├── QuizTestOpenQuestion.php     — Open question entity (test_id, question_text, is_required, weight)
-    │   └── QuizTestResult.php           — Submission entity (who, when, which test, score, JSON answers snapshot)
+    │   ├── QuizTest.php                 — Test content entity
+    │   ├── QuizTestQuestion.php         — Question content entity
+    │   ├── QuizTestOpenQuestion.php     — Open question content entity
+    │   └── QuizTestResult.php           — Submission result content entity
     ├── Form/
-    │   ├── QuizTestForm.php             — Add/edit test form
-    │   ├── QuizTestDeleteForm.php       — Delete test form (cascades to questions + open questions)
-    │   ├── QuizTestQuestionForm.php     — AJAX question form (dynamic answers)
-    │   ├── QuizTestQuestionDeleteForm.php — Delete question form
-    │   ├── QuizTestOpenQuestionForm.php — Open question form (text + "Required" + weight)
-    │   ├── QuizTestOpenQuestionDeleteForm.php — Delete open question form
-    │   ├── QuizTestListBuilder.php      — Custom admin list builder
-    │   ├── QuizTestResultFilterForm.php — Submission log filter (by test and full name)
-    │   ├── QuizTestResultDeleteForm.php — Delete submission form
-    │   ├── QuizTestSettingsForm.php     — Module settings form
-    │   └── TakeTestForm.php             — Public test-taking form
-    └── Plugin/Mail/
-        └── QuizTestPhpMail.php          — Custom HTML mailer (no word-wrapping)
+    │   ├── QuizTestForm.php             — Test add/edit form
+    │   ├── QuizTestDeleteForm.php       — Test deletion confirmation
+    │   ├── QuizTestQuestionForm.php     — AJAX question add/edit form
+    │   ├── QuizTestQuestionDeleteForm.php — Question deletion confirmation
+    │   ├── QuizTestOpenQuestionForm.php — Open question form
+    │   ├── QuizTestOpenQuestionDeleteForm.php — Open question deletion confirmation
+    │   ├── QuizTestListBuilder.php      — Custom entity list builder
+    │   ├── QuizTestResultFilterForm.php — Results log filter form
+    │   ├── QuizTestResultDeleteForm.php — Result deletion confirmation
+    │   ├── QuizTestSettingsForm.php     — General settings form
+    │   ├── QuizTestDailyReportSettingsForm.php — Daily report & schedule configuration form
+    │   └── TakeTestForm.php             — Public test submission form
+    ├── Plugin/Mail/
+    │   └── QuizTestPhpMail.php          — Custom HTML mail plugin
+    └── Service/
+        └── QuizTestDailyReportService.php — Reporting logic, statistics, HTML rendering & mail dispatch
 ```
 
-## Mail pipeline
+## Mail Engine & Cron
 
-The module sends test results through a custom mail pipeline:
-
-1. **`hook_mail()`** (`quiz_test.module`) — builds the email body using the `quiz_test_results_email` theme
-2. **`quiz-test-results-email.html.twig`** — full HTML template with a table layout, accent header, per-question results (correct/incorrect) and a score summary
-3. **`quiz-test-results-email.txt.twig`** — plain-text fallback template
-4. **`hook_mail_alter()`** — sets `Content-Type: text/html; charset=UTF-8` for the module's emails
-5. **`QuizTestPhpMail`** — custom plugin that disables word-wrapping for HTML emails (preserves the HTML structure)
-
-Email subject tokens:
-- `@test_title` — test name
-- `@user_name` — Drupal username of the test taker
-- `@score` — percentage score (e.g. `80%`)
+1. **Immediate Notifications**: When a user submits a test, an HTML email is generated using `quiz_test_results_email` with full per-question results.
+2. **Daily Summary Report**: Dispatched via `hook_cron()`. The system evaluates the server time against the configured `send_hour` (e.g. 20:00), ensures the report hasn't been sent yet for today, gathers all `quiz_test_result` records for the day, and emails the HTML summary report (`quiz_test_daily_report_email`).
+3. **Token-Secured Web View**: Each daily email contains an authenticated URL (`/quiz-test/daily-report/YYYY-MM-DD?token=...`) allowing managers to view the responsive HTML report in any web browser without needing a Drupal account.
+4. **`QuizTestPhpMail`**: Prevents Drupal core's 990-character line wrap from corrupting HTML email templates.
 
 ## Compatibility
 
 | Drupal | PHP | Status |
 |--------|-----|--------|
-| 9.x | 7.4+ | Fully supported |
-| 10.x | 8.1+ | Fully supported |
-| 11.x | 8.3+ | Fully supported |
+| 9.x  | 7.4+ | Supported |
+| 10.x | 8.1+ | Supported |
+| 11.x | 8.3+ | Supported |
 
-The module uses standard Drupal APIs (`@ContentEntityType`, `BaseFieldDefinition`, `EntityChangedTrait`) and correctly calls `accessCheck(TRUE)` on entity queries, meeting Drupal 10 / 11 requirements.
+## Current Version
 
-## Current version
-
-**1.2.1** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
+**1.3.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases).
 
 ## Uninstallation
 
-1. Disable the module via the admin UI or Drush:
-   ```bash
-   drush pm:uninstall quiz_test -y
-   ```
-2. On uninstall, Drupal automatically removes the module's configuration and the `quiz_test` / `quiz_test_question` / `quiz_test_open_question` / `quiz_test_result` tables.
-
-## License
-
-GPL-2.0-or-later, same as Drupal core.
+```bash
+drush pm:uninstall quiz_test -y
+```
 
 ## Author
 
@@ -290,4 +262,3 @@ GPL-2.0-or-later, same as Drupal core.
 - **Repository:** [https://github.com/Mmitekk/quiz_test](https://github.com/Mmitekk/quiz_test)
 - **Releases:** [https://github.com/Mmitekk/quiz_test/releases](https://github.com/Mmitekk/quiz_test/releases)
 - **Issues:** [https://github.com/Mmitekk/quiz_test/issues](https://github.com/Mmitekk/quiz_test/issues)
-- **Документация на русском:** [README.md](./README.md)
