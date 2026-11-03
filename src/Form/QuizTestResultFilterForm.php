@@ -22,7 +22,8 @@ class QuizTestResultFilterForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, $test_id = '', $name = '') {
     // List all tests (published or not) as filter options.
-    $tests = $this->entityTypeManager()->getStorage('quiz_test')->loadMultiple();
+    // FormBase has no entityTypeManager() helper — use the \Drupal accessor.
+    $tests = \Drupal::entityTypeManager()->getStorage('quiz_test')->loadMultiple();
     $options = ['' => $this->t('— Любой тест —')];
     foreach ($tests as $test) {
       $options[$test->id()] = $test->label();

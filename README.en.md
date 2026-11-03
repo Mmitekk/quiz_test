@@ -267,7 +267,7 @@ The module uses standard Drupal APIs (`@ContentEntityType`, `BaseFieldDefinition
 
 ## Current version
 
-**1.2.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
+**1.2.1** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
 
 ## Uninstallation
 

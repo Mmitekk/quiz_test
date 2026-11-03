@@ -267,7 +267,7 @@ quiz_test/
 
 ## Текущая версия
 
-**1.2.0** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
+**1.2.1** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
 
 ## Удаление модуля
 
