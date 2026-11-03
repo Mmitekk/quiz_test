@@ -21,6 +21,7 @@ A Drupal 9 / 10 / 11 module that provides a complete online testing system: admi
 - **Admin UI** — test list with question count, status, author and operations (Questions, View)
 - **Tabs on test edit** — Edit / Questions / Settings
 - **Result privacy** — detailed results are sent by email only; the user sees a generic thank-you page
+- **Submission log (since 1.2.0)** — an admin page showing who took which test and when, with the score. Each submission has a detailed report (answers to every question, including open ones), a test/full-name filter, and a pager. Question texts and options are snapshotted at submission time, so history stays accurate even after questions are edited
 - **Tempstore** — results are stored in `tempstore.private` for proper POST-redirect handling
 - **Logging** — watchdog logs on test/question creation and deletion
 - **Cascading config** — per-test email settings override the global defaults
@@ -151,7 +152,15 @@ The open part appears in the take form and in the results email **only** if the 
 3. After submission:
    - results are scored automatically;
    - an HTML email with detailed results is sent to the configured recipients;
+   - the submission is stored in the **Submission log** (`/admin/quiz-test/results`);
    - the user sees a thank-you page.
+
+### Step 5. Review the submission log
+
+1. Go to **Administration → Content → Submission log** (`/admin/quiz-test/results`) or open the **Results** tab on the test list page
+2. The table shows: date, site account, full name, test, score. Filter by test and by name substring
+3. Click **Results** in a row to open the detailed report: the user's answer vs the correct answer for every question (free-text answers for open questions)
+4. A single submission can be deleted from the report page or from the list. Deleting a test also removes its submission log
 
 ## Permissions
 
@@ -178,6 +187,9 @@ Configure at **Administration → People → Permissions** (`/admin/people/permi
 | `/admin/quiz-test/{id}/open-questions/add` | `quiz_test.open_question_add` | Add open question |
 | `/admin/quiz-test/{id}/open-questions/{qid}/edit` | `quiz_test.open_question_edit` | Edit open question |
 | `/admin/quiz-test/{id}/open-questions/{qid}/delete` | `quiz_test.open_question_delete` | Delete open question |
+| `/admin/quiz-test/results` | `quiz_test.results` | Submission log (who, when, which test) |
+| `/admin/quiz-test/results/{id}` | `quiz_test.result_view` | Detailed submission report |
+| `/admin/quiz-test/results/{id}/delete` | `entity.quiz_test_result.delete_form` | Delete a submission |
 | `/admin/config/quiz-test/settings` | `quiz_test.settings` | Module settings |
 | `/quiz-test/{id}` | `quiz_test.take_test` | Take test (public) |
 
@@ -205,11 +217,13 @@ quiz_test/
 │   └── quiz-test-results-email.txt.twig    — Plain-text email template
 └── src/
     ├── Controller/
-    │   └── QuizTestController.php       — Question CRUD + take-test controller
+    │   ├── QuizTestController.php       — Question CRUD + take-test controller
+    │   └── QuizTestResultController.php — Submission log + detailed report controller
     ├── Entity/
     │   ├── QuizTest.php                 — Test entity (title, description, email, status)
     │   ├── QuizTestQuestion.php         — Question entity (test_id, question_text, answers JSON, correct_answer, weight)
-    │   └── QuizTestOpenQuestion.php     — Open question entity (test_id, question_text, is_required, weight)
+    │   ├── QuizTestOpenQuestion.php     — Open question entity (test_id, question_text, is_required, weight)
+    │   └── QuizTestResult.php           — Submission entity (who, when, which test, score, JSON answers snapshot)
     ├── Form/
     │   ├── QuizTestForm.php             — Add/edit test form
     │   ├── QuizTestDeleteForm.php       — Delete test form (cascades to questions + open questions)
@@ -218,6 +232,8 @@ quiz_test/
     │   ├── QuizTestOpenQuestionForm.php — Open question form (text + "Required" + weight)
     │   ├── QuizTestOpenQuestionDeleteForm.php — Delete open question form
     │   ├── QuizTestListBuilder.php      — Custom admin list builder
+    │   ├── QuizTestResultFilterForm.php — Submission log filter (by test and full name)
+    │   ├── QuizTestResultDeleteForm.php — Delete submission form
     │   ├── QuizTestSettingsForm.php     — Module settings form
     │   └── TakeTestForm.php             — Public test-taking form
     └── Plugin/Mail/
@@ -251,7 +267,7 @@ The module uses standard Drupal APIs (`@ContentEntityType`, `BaseFieldDefinition
 
 ## Current version
 
-**1.1.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
+**1.2.0** — see [Releases](https://github.com/Mmitekk/quiz_test/releases) to download a specific version.
 
 ## Uninstallation
 
@@ -259,7 +275,7 @@ The module uses standard Drupal APIs (`@ContentEntityType`, `BaseFieldDefinition
    ```bash
    drush pm:uninstall quiz_test -y
    ```
-2. On uninstall, Drupal automatically removes the module's configuration and the `quiz_test` / `quiz_test_question` tables.
+2. On uninstall, Drupal automatically removes the module's configuration and the `quiz_test` / `quiz_test_question` / `quiz_test_open_question` / `quiz_test_result` tables.
 
 ## License
 

@@ -5,6 +5,7 @@ namespace Drupal\quiz_test\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\quiz_test\Entity\QuizTest;
+use Drupal\quiz_test\Entity\QuizTestResult;
 
 /**
  * Form for taking a quiz test.
@@ -239,8 +240,21 @@ class TakeTestForm extends FormBase {
       ];
     }
 
-    // Send email notification with full results.
+    // Log the submission so administrators can see who passed which test
+    // and when (admin page /admin/quiz-test/results). A failure here must
+    // not block the email or the thank-you page.
     $full_name = $form_state->getValue('full_name');
+    try {
+      $this->saveResultLog($test, $results, $open_results, $correct_count, $total_count, $score_percent, $full_name);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('quiz_test')->warning('Не удалось сохранить результат прохождения теста «@test» в журнал: @message', [
+        '@test' => $test->label(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    // Send email notification with full results.
     $this->sendResultEmail($test, $results, $correct_count, $total_count, $score_percent, $full_name, $open_results);
 
     // Store results in tempstore — only need a flag, no detailed info shown.
@@ -254,6 +268,58 @@ class TakeTestForm extends FormBase {
     ]);
 
     $form_state->setRedirect('quiz_test.take_test', ['quiz_test' => $test->id()]);
+  }
+
+  /**
+   * Saves a snapshot of the submission to the results log.
+   *
+   * All question texts and answer options are copied into the snapshot, so
+   * the admin report stays accurate even if questions are edited or deleted
+   * later.
+   */
+  protected function saveResultLog(QuizTest $test, array $results, array $open_results, $correct, $total, $score_percent, $full_name) {
+    $snapshot = [];
+
+    foreach ($results as $result) {
+      $q = $result['question'];
+      $answers = $q->getAnswers();
+
+      $user_answer_text = $result['user_answer'] >= 0 && isset($answers[$result['user_answer']])
+        ? ($result['user_answer'] + 1) . ') ' . $answers[$result['user_answer']]
+        : (string) $this->t('Нет ответа');
+      $correct_answer_text = isset($answers[$result['correct_answer']])
+        ? ($result['correct_answer'] + 1) . ') ' . $answers[$result['correct_answer']]
+        : '';
+
+      $snapshot[] = [
+        'type' => 'choice',
+        'question' => strip_tags($q->getQuestionText()),
+        'user_answer' => $result['user_answer'],
+        'user_answer_text' => (string) $user_answer_text,
+        'correct_answer' => $result['correct_answer'],
+        'correct_answer_text' => (string) $correct_answer_text,
+        'is_correct' => (bool) $result['is_correct'],
+      ];
+    }
+
+    foreach ($open_results as $open_result) {
+      $snapshot[] = [
+        'type' => 'open',
+        'question' => $open_result['question_text'],
+        'user_answer_text' => $open_result['user_answer'],
+      ];
+    }
+
+    QuizTestResult::create([
+      'test_id' => $test->id(),
+      'uid' => \Drupal::currentUser()->id(),
+      'test_title' => $test->label(),
+      'full_name' => $full_name,
+      'correct' => $correct,
+      'total' => $total,
+      'score_percent' => ($score_percent !== NULL) ? (int) $score_percent : 0,
+      'answers' => json_encode($snapshot, JSON_UNESCAPED_UNICODE),
+    ])->save();
   }
 
   /**

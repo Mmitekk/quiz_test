@@ -10,6 +10,43 @@
   white-space: nowrap;
 }
 
+/* --- Results log --- */
+.quiz-test-score-pass {
+  color: #1e8449;
+  font-weight: 700;
+}
+.quiz-test-score-fail {
+  color: #c0392b;
+  font-weight: 700;
+}
+.quiz-test-results-filter {
+  margin-bottom: 16px;
+}
+.quiz-test-result-summary {
+  margin-bottom: 16px;
+}
+.quiz-test-result-summary ul {
+  margin: 0;
+}
+.quiz-test-result-correct {
+  color: #1e8449;
+  font-weight: 700;
+  text-align: center;
+}
+.quiz-test-result-wrong {
+  color: #c0392b;
+  font-weight: 700;
+  text-align: center;
+}
+.quiz-test-result-neutral {
+  text-align: center;
+  color: #888;
+}
+.quiz-test-result-back {
+  display: inline-block;
+  margin-top: 16px;
+}
+
 /* --- Dynamic answers form --- */
 #quiz-answers-and-correct {
   margin-bottom: 24px;

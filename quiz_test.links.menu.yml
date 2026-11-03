@@ -5,6 +5,13 @@ entity.quiz_test.collection:
   route_name: entity.quiz_test.collection
   weight: 100
 
+quiz_test.results:
+  title: 'Результаты тестирования'
+  description: 'Кто, когда и какой тест проходил.'
+  parent: system.admin_content
+  route_name: quiz_test.results
+  weight: 101
+
 quiz_test.settings:
   title: 'Настройки тестирования'
   description: 'Настройки модуля тестирования.'

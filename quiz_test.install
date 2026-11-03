@@ -167,7 +167,107 @@ function quiz_test_schema() {
 
   $schema['quiz_test_open_question'] = _quiz_test_open_question_schema();
 
+  $schema['quiz_test_result'] = _quiz_test_result_schema();
+
   return $schema;
+}
+
+/**
+ * Returns the schema definition for the {quiz_test_result} table.
+ *
+ * Stores a log of every submitted test: who passed which test and when,
+ * including a JSON snapshot of all answers. Shared between hook_schema()
+ * (fresh installs) and the update function.
+ */
+function _quiz_test_result_schema() {
+  return [
+    'description' => 'Stores quiz test submissions: who passed which test and when, with an answers snapshot.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+        'description' => 'Primary Key: Unique result ID.',
+      ],
+      'uuid' => [
+        'type' => 'varchar_ascii',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'UUID.',
+      ],
+      'test_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'The ID of the parent test entity.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The user ID of the site account that took the test (0 = anonymous).',
+      ],
+      'test_title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Snapshot of the test title at submission time.',
+      ],
+      'full_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'The full name entered by the respondent.',
+      ],
+      'correct' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Number of correct answers.',
+      ],
+      'total' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Total number of multiple-choice questions.',
+      ],
+      'score_percent' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Score percentage (0 when the test had no scored questions).',
+      ],
+      'answers' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'JSON snapshot of every answer at submission time.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'The Unix timestamp when the test was submitted.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'test_id' => ['test_id'],
+      'uid' => ['uid'],
+      'created' => ['created'],
+    ],
+    'foreign keys' => [
+      'test_id' => [
+        'table' => 'quiz_test',
+        'columns' => ['test_id' => 'id'],
+      ],
+    ],
+  ];
 }
 
 /**
@@ -656,4 +756,44 @@ function quiz_test_update_8011() {
   \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
 
   return t('Ensured the quiz_test_open_question table exists.');
+}
+
+/**
+ * Install the quiz_test_result entity type (admin results log).
+ *
+ * Adds the submission log powering the "Результаты" admin page. Follows the
+ * same robust pattern as update_8011: try the entity definition update
+ * manager first, then fall back to creating the table directly from the
+ * schema spec so the results page never crashes on a missing table.
+ */
+function quiz_test_update_8012() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  // Make sure the new entity type is discoverable from the annotation.
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+
+  if (!$schema->tableExists('quiz_test_result')) {
+    // Preferred path: install the entity type via the official API so the
+    // base table is created AND the type is registered as installed.
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $entity_type = $update_manager->getEntityType('quiz_test_result');
+    if ($entity_type) {
+      try {
+        $update_manager->installEntityType($entity_type);
+      }
+      catch (\Exception $e) {
+        // Fall through to the manual fallback below.
+      }
+    }
+
+    // Ultimate fallback: create the table directly from the schema spec.
+    if (!$schema->tableExists('quiz_test_result')) {
+      $schema->createTable('quiz_test_result', _quiz_test_result_schema());
+    }
+  }
+
+  \Drupal::service('entity_field.manager')->clearCachedFieldDefinitions();
+
+  return t('Installed the results log (quiz_test_result) for the admin results page.');
 }

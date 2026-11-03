@@ -23,3 +23,16 @@ quiz_test.settings_tab:
   route_name: quiz_test.settings
   title: 'Настройки'
   base_route: quiz_test.settings
+
+# Default tab on the tests collection page.
+entity.quiz_test.collection_default_tab:
+  route_name: entity.quiz_test.collection
+  base_route: entity.quiz_test.collection
+  title: 'Тесты'
+
+# Results log tab on the same collection page.
+quiz_test.results_tab:
+  route_name: quiz_test.results
+  title: 'Результаты'
+  base_route: entity.quiz_test.collection
+  weight: 1

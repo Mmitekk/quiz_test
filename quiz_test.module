@@ -29,12 +29,15 @@ function quiz_test_help($route_name, RouteMatchInterface $route_match) {
       $output .= '<dt>' . t('Настройки') . '</dt>';
       $output .= '<dd>' . t('Перейдите на <a href=":settings">Администрирование » Конфигурация » Настройки тестирования</a>, чтобы указать роль для доступа к тестам и параметры email-уведомлений.', [':settings' => '/admin/config/quiz-test/settings']) . '</dd>';
       $output .= '<dt>' . t('Прохождение тестов') . '</dt>';
-      $output .= '<dd>' . t('Пользователи с назначенной ролью могут проходить тесты по адресу <em>/quiz-test/{test-id}</em>. После отправки ответов результаты будут отправлены на настроенные адреса электронной почты.', []) . '</dd>';
+      $output .= '<dd>' . t('Пользователи с назначенной ролью могут проходить тесты по адресу <em>/quiz-test/{test-id}</em>. После отправки ответов результаты будут отправлены на настроенные адреса электронной почты и сохранены в журнале <a href=":results">Результаты тестирования</a>.', [':results' => '/admin/quiz-test/results']) . '</dd>';
       $output .= '</dl>';
       return $output;
 
     case 'entity.quiz_test.collection':
-      return '<p>' . t('Управление тестами. Нажмите «Добавить тест», чтобы создать новый тест, или используйте ссылки в столбце «Операции» для редактирования, удаления и управления вопросами.') . '</p>';
+      return '<p>' . t('Управление тестами. Нажмите «Добавить тест», чтобы создать новый тест, или используйте ссылки в столбце «Операции» для редактирования, удаления и управления вопросами. На вкладке «Результаты» — журнал прохождений: кто, когда и какой тест проходил.') . '</p>';
+
+    case 'quiz_test.results':
+      return '<p>' . t('Журнал прохождений тестов. Нажмите «Результаты» в строке, чтобы увидеть детальный отчёт — ответы пользователя по каждому вопросу. Используйте фильтр, чтобы отобрать результаты по тесту или ФИО.') . '</p>';
 
     case 'quiz_test.settings':
       return '<p>' . t('Настройки модуля «Тестирование». Укажите роль, которой разрешено проходить тесты, и параметры email-уведомлений о результатах.') . '</p>';
@@ -156,6 +159,25 @@ function quiz_test_entity_insert($entity) {
  */
 function quiz_test_entity_delete($entity) {
   if ($entity->getEntityTypeId() === 'quiz_test') {
+    // Cascade: remove the submission log entries of the deleted test. The
+    // table may not exist yet if database updates are still pending.
+    try {
+      $storage = \Drupal::entityTypeManager()->getStorage('quiz_test_result');
+      $ids = $storage->getQuery()
+        ->condition('test_id', $entity->id())
+        ->accessCheck(TRUE)
+        ->execute();
+      if (!empty($ids)) {
+        $storage->delete($storage->loadMultiple($ids));
+      }
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('quiz_test')->warning('Не удалось удалить журнал прохождений теста ID @id: @message', [
+        '@id' => $entity->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
     \Drupal::logger('quiz_test')->notice('Удалён тест «@title».', [
       '@title' => $entity->label(),
     ]);

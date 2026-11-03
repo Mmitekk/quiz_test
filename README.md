@@ -21,6 +21,7 @@
 - **Административный интерфейс** — список тестов с количеством вопросов, статусом, автором и операциями (Вопросы, Просмотр)
 - **Вкладки при редактировании** — «Редактировать» / «Вопросы» / «Настройки»
 - **Конфиденциальность результатов** — детальные результаты уходят только в email, пользователь видит общую страницу благодарности
+- **Журнал прохождений (с версии 1.2.0)** — страница в админке: кто, когда и какой тест проходил, с баллом. Детальный отчёт по каждому прохождению (ответы по всем вопросам, включая открытые), фильтр по тесту и ФИО, пейджер. Все тексты вопросов и вариантов сохраняются снимком, поэтому история остаётся точной даже после правки вопросов
 - **Tempstore** — результаты сохраняются в `tempstore.private` для корректной обработки POST-redirect
 - **Логирование** — watchdog-логи при создании/удалении тестов и вопросов
 - **Каскадная конфигурация** — настройки email на уровне теста переопределяют глобальные значения
@@ -151,7 +152,15 @@ drush cr
 3. После отправки:
    - результаты автоматически подсчитываются;
    - HTML-письмо с детальными результатами отправляется настроенным получателям;
+   - прохождение сохраняется в журнал **Результаты тестирования** (`/admin/quiz-test/results`);
    - пользователь видит страницу благодарности.
+
+### Шаг 5. Просматривайте журнал прохождений
+
+1. Перейдите в **Администрирование → Содержимое → Результаты тестирования** (`/admin/quiz-test/results`) или откройте вкладку **Результаты** на странице списка тестов
+2. В таблице: дата, пользователь сайта, ФИО, тест, балл. Фильтр — по тесту и подстроке ФИО
+3. Нажмите **Результаты** в строке, чтобы открыть детальный отчёт: по каждому вопросу — ответ пользователя и верный ответ (для открытых вопросов — свободный ответ)
+4. Отдельное прохождение можно удалить со страницы отчёта или из списка. При удалении теста его журнал прохождений удаляется вместе с ним
 
 ## Разрешения
 
@@ -178,6 +187,9 @@ drush cr
 | `/admin/quiz-test/{id}/open-questions/add` | `quiz_test.open_question_add` | Добавить открытый вопрос |
 | `/admin/quiz-test/{id}/open-questions/{qid}/edit` | `quiz_test.open_question_edit` | Редактировать открытый вопрос |
 | `/admin/quiz-test/{id}/open-questions/{qid}/delete` | `quiz_test.open_question_delete` | Удалить открытый вопрос |
+| `/admin/quiz-test/results` | `quiz_test.results` | Журнал прохождений (кто, когда, какой тест) |
+| `/admin/quiz-test/results/{id}` | `quiz_test.result_view` | Детальный отчёт по прохождению |
+| `/admin/quiz-test/results/{id}/delete` | `entity.quiz_test_result.delete_form` | Удалить результат прохождения |
 | `/admin/config/quiz-test/settings` | `quiz_test.settings` | Настройки модуля |
 | `/quiz-test/{id}` | `quiz_test.take_test` | Пройти тест (публично) |
 
@@ -205,21 +217,25 @@ quiz_test/
 │   └── quiz-test-results-email.txt.twig    — Текстовый шаблон письма
 └── src/
     ├── Controller/
-    │   └── QuizTestController.php       — Контроллер: вопросы CRUD, прохождение теста
+    │   ├── QuizTestController.php       — Контроллер: вопросы CRUD, прохождение теста
+    │   └── QuizTestResultController.php — Контроллер: журнал результатов + детальный отчёт
     ├── Entity/
     │   ├── QuizTest.php                 — Сущность теста (title, description, email, status)
     │   ├── QuizTestQuestion.php         — Сущность вопроса (test_id, question_text, answers JSON, correct_answer, weight)
-    │   └── QuizTestOpenQuestion.php     — Сущность открытого вопроса (test_id, question_text, is_required, weight)
+    │   ├── QuizTestOpenQuestion.php     — Сущность открытого вопроса (test_id, question_text, is_required, weight)
+    │   └── QuizTestResult.php           — Сущность результата прохождения (кто, когда, какой тест, балл, JSON-снимок ответов)
     ├── Form/
     │   ├── QuizTestForm.php             — Форма добавления/редактирования теста
     │   ├── QuizTestDeleteForm.php       — Форма удаления теста (каскадное удаление вопросов + открытых)
     │   ├── QuizTestQuestionForm.php     — AJAX-форма вопроса (динамические ответы)
     │   ├── QuizTestQuestionDeleteForm.php — Форма удаления вопроса
     │   ├── QuizTestOpenQuestionForm.php — Форма открытого вопроса (текст + «Обязательно» + вес)
-    │   ├── QuizTestOpenQuestionDeleteForm.php — Форма удаления открытого вопроса
-    │   ├── QuizTestListBuilder.php      — Кастомный список тестов
-    │   ├── QuizTestSettingsForm.php     — Форма настроек модуля
-    │   └── TakeTestForm.php             — Публичная форма прохождения теста
+│   ├── QuizTestOpenQuestionDeleteForm.php — Форма удаления открытого вопроса
+│   ├── QuizTestListBuilder.php      — Кастомный список тестов
+│   ├── QuizTestResultFilterForm.php — Фильтр журнала результатов (по тесту и ФИО)
+│   ├── QuizTestResultDeleteForm.php — Форма удаления результата прохождения
+│   ├── QuizTestSettingsForm.php     — Форма настроек модуля
+│   └── TakeTestForm.php             — Публичная форма прохождения теста
     └── Plugin/Mail/
         └── QuizTestPhpMail.php          — Кастомный HTML-майлер (без переноса строк)
 ```
@@ -251,7 +267,7 @@ quiz_test/
 
 ## Текущая версия
 
-**1.1.0** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
+**1.2.0** — см. [Releases](https://github.com/Mmitekk/quiz_test/releases) для скачивания конкретной версии.
 
 ## Удаление модуля
 
@@ -259,7 +275,7 @@ quiz_test/
    ```bash
    drush pm:uninstall quiz_test -y
    ```
-2. При удалении Drupal автоматически удалит конфигурацию модуля и таблицы `quiz_test` / `quiz_test_question`.
+2. При удалении Drupal автоматически удалит конфигурацию модуля и таблицы `quiz_test` / `quiz_test_question` / `quiz_test_open_question` / `quiz_test_result`.
 
 ## Лицензия
 

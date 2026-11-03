@@ -68,6 +68,24 @@ quiz_test.open_question_delete:
   requirements:
     _permission: 'administer quiz tests'
 
+# --- Results log (admin) ---
+
+quiz_test.results:
+  path: '/admin/quiz-test/results'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestResultController::resultList'
+    _title: 'Результаты тестов'
+  requirements:
+    _permission: 'administer quiz tests'
+
+quiz_test.result_view:
+  path: '/admin/quiz-test/results/{quiz_test_result}'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestResultController::resultView'
+    _title_callback: '\Drupal\quiz_test\Controller\QuizTestResultController::resultTitle'
+  requirements:
+    _permission: 'administer quiz tests'
+
 quiz_test.settings:
   path: '/admin/config/quiz-test/settings'
   defaults:
