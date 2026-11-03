@@ -102,15 +102,22 @@ quiz_test.daily_report_view_today:
     _controller: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::viewToday'
     _title: 'Отчёт по тестированию за сегодня'
   requirements:
-    _permission: 'administer quiz tests'
+    _permission: 'administer quiz tests,view quiz test daily reports'
 
 quiz_test.daily_report_view:
-  path: '/quiz-test/daily-report/{date}'
+  path: '/admin/quiz-test/daily-report/{date}'
   defaults:
     _controller: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::viewReport'
     _title_callback: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::reportTitle'
   requirements:
     _custom_access: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::accessReport'
+
+quiz_test.daily_report_view_legacy:
+  path: '/quiz-test/daily-report/{date}'
+  defaults:
+    _controller: '\Drupal\quiz_test\Controller\QuizTestDailyReportController::legacyRedirect'
+  requirements:
+    _access: 'TRUE'
 
 quiz_test.settings:
   path: '/admin/config/quiz-test/settings'

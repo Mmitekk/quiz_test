@@ -93,30 +93,26 @@ class QuizTestDailyReportService {
   }
 
   /**
-   * Gets or generates the secret access token for the web view link.
-   */
-  public function getAccessToken() {
-    $config = $this->getEditableConfig();
-    $token = $config->get('access_token');
-    if (empty($token)) {
-      $token = Crypt::randomBytesBase64(24);
-      $config->set('access_token', $token)->save();
-    }
-    return $token;
-  }
-
-  /**
    * Generates the absolute web URL for viewing the daily report.
+   *
+   * @param string $date_string
+   *   Date in YYYY-MM-DD format.
+   *
+   * @return string
+   *   Absolute URL to report on the website, or empty string if web view is disabled.
    */
   public function getWebReportUrl($date_string) {
+    $config = $this->getConfig();
+    $web_enabled = $config->get('enable_web_view') ?? TRUE;
+    if (!$web_enabled) {
+      return '';
+    }
+
     try {
       return Url::fromRoute(
         'quiz_test.daily_report_view',
         ['date' => $date_string],
-        [
-          'query' => ['token' => $this->getAccessToken()],
-          'absolute' => TRUE,
-        ]
+        ['absolute' => TRUE]
       )->toString();
     }
     catch (\Exception $e) {
@@ -263,13 +259,24 @@ class QuizTestDailyReportService {
 
   /**
    * Renders the daily report HTML.
+   *
+   * @param array $report_data
+   *   The structured report data.
+   * @param bool $include_details
+   *   Whether to include full question/answer breakdown.
+   * @param bool $is_web_view
+   *   TRUE if rendering for browser display, FALSE if rendering for email.
+   *
+   * @return string
+   *   The rendered HTML string.
    */
-  public function renderHtmlReport(array $report_data, $include_details = TRUE) {
+  public function renderHtmlReport(array $report_data, $include_details = TRUE, $is_web_view = FALSE) {
     $render_array = [
       '#theme' => 'quiz_test_daily_report_email',
       '#report' => $report_data,
       '#include_details' => $include_details,
       '#site_name' => $this->configFactory->get('system.site')->get('name'),
+      '#is_web_view' => $is_web_view,
     ];
 
     return (string) $this->renderer->renderPlain($render_array);

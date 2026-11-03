@@ -6,6 +6,7 @@ use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
+use Drupal\Core\Url;
 use Drupal\quiz_test\Service\QuizTestDailyReportService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,25 +43,33 @@ class QuizTestDailyReportController extends ControllerBase {
   }
 
   /**
-   * Custom access check for viewing the daily report.
+   * Access check for viewing the daily report.
    *
-   * Grants access if the user has administrative permission OR provides
-   * the valid secret token in the query string (?token=XYZ).
+   * Only allows users who are logged in and possess either the
+   * 'view quiz test daily reports' or 'administer quiz tests' permission.
+   * Also verifies that the web-view feature is enabled in module settings.
    */
   public function accessReport($date, Request $request) {
+    $config = $this->config('quiz_test.daily_report.settings');
+    $web_enabled = $config->get('enable_web_view') ?? TRUE;
+    if (!$web_enabled) {
+      return AccessResult::forbidden('Веб-версия отчёта отключена в настройках модуля.');
+    }
+
     $account = $this->currentUser();
-    if ($account->hasPermission('administer quiz tests')) {
+    if ($account->hasPermission('administer quiz tests') || $account->hasPermission('view quiz test daily reports')) {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    $token = (string) $request->query->get('token');
-    $config_token = (string) $this->config('quiz_test.daily_report.settings')->get('access_token');
+    return AccessResult::forbidden('У вас нет прав для просмотра ежедневных отчётов по тестированию.');
+  }
 
-    if (!empty($config_token) && !empty($token) && hash_equals($config_token, $token)) {
-      return AccessResult::allowed()->cachePerPermissions();
-    }
-
-    return AccessResult::forbidden('У вас нет доступа к просмотру данного отчёта.');
+  /**
+   * Redirects legacy URLs (/quiz-test/daily-report/{date}) to /admin/quiz-test/daily-report/{date}.
+   */
+  public function legacyRedirect($date, Request $request) {
+    $url = Url::fromRoute('quiz_test.daily_report_view', ['date' => $date]);
+    return new TrustedRedirectResponse($url->toString(), 301);
   }
 
   /**
@@ -69,8 +78,8 @@ class QuizTestDailyReportController extends ControllerBase {
   public function viewToday(Request $request) {
     $timezone = $this->config('system.date')->get('timezone.default') ?: date_default_timezone_get();
     $today_str = (new \DateTime('now', new \DateTimeZone($timezone)))->format('Y-m-d');
-    $url = $this->dailyReportService->getWebReportUrl($today_str);
-    return new TrustedRedirectResponse($url);
+    $url = Url::fromRoute('quiz_test.daily_report_view', ['date' => $today_str]);
+    return new TrustedRedirectResponse($url->toString());
   }
 
   /**
@@ -98,11 +107,14 @@ class QuizTestDailyReportController extends ControllerBase {
     }
 
     $report_data = $this->dailyReportService->buildReportData($dt);
-    $html = $this->dailyReportService->renderHtmlReport($report_data, TRUE);
+    // Render with $is_web_view = TRUE so that redundant links are not rendered.
+    $html = $this->dailyReportService->renderHtmlReport($report_data, TRUE, TRUE);
 
-    // Return as standalone HTML document so recipients can view it cleanly.
+    // Return as standalone HTML document with strict noindex/privacy headers.
     $response = new Response($html);
     $response->headers->set('Content-Type', 'text/html; charset=UTF-8');
+    $response->headers->set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+    $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
     return $response;
   }
 

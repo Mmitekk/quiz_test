@@ -360,6 +360,7 @@ function quiz_test_install() {
   // Set default configuration for daily summary report.
   \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings')
     ->set('enabled', TRUE)
+    ->set('enable_web_view', TRUE)
     ->set('recipients', '')
     ->set('subject', 'Ежедневный отчёт по тестированию за @date — заполнено тестов: @count')
     ->set('send_hour', 20)
@@ -367,7 +368,6 @@ function quiz_test_install() {
     ->set('include_details', TRUE)
     ->set('send_empty', FALSE)
     ->set('last_sent_date', '')
-    ->set('access_token', \Drupal\Component\Utility\Crypt::randomBytesBase64(24))
     ->save();
 
   // Configure the quiz_test module to use our custom HTML mail plugin.
@@ -815,9 +815,10 @@ function quiz_test_update_8012() {
  */
 function quiz_test_update_8013() {
   $config = \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings');
-  if ($config->isNew() || empty($config->get('access_token'))) {
+  if ($config->isNew() || empty($config->get('send_hour'))) {
     $config
       ->set('enabled', TRUE)
+      ->set('enable_web_view', TRUE)
       ->set('recipients', '')
       ->set('subject', 'Ежедневный отчёт по тестированию за @date — заполнено тестов: @count')
       ->set('send_hour', 20)
@@ -825,9 +826,21 @@ function quiz_test_update_8013() {
       ->set('include_details', TRUE)
       ->set('send_empty', FALSE)
       ->set('last_sent_date', '')
-      ->set('access_token', \Drupal\Component\Utility\Crypt::randomBytesBase64(24))
       ->save();
   }
 
   return t('Initialized configuration for the daily summary report.');
+}
+
+/**
+ * Configure permission-restricted web view and remove legacy access tokens.
+ */
+function quiz_test_update_8014() {
+  $config = \Drupal::configFactory()->getEditable('quiz_test.daily_report.settings');
+  if ($config->get('enable_web_view') === NULL) {
+    $config->set('enable_web_view', TRUE);
+  }
+  $config->clear('access_token')->save();
+
+  return t('Configured permission-restricted web view for daily reports.');
 }

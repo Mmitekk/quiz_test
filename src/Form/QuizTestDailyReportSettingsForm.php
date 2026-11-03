@@ -72,22 +72,34 @@ class QuizTestDailyReportSettingsForm extends ConfigFormBase {
     $now_formatted = $this->dateFormatter->format(\Drupal::time()->getRequestTime(), 'custom', 'd.m.Y H:i:s') . ' (' . $timezone . ')';
     $today_str = (new \DateTime('now', new \DateTimeZone($timezone)))->format('Y-m-d');
     $today_preview_url = Url::fromRoute('quiz_test.daily_report_view', ['date' => $today_str], [
-      'query' => ['token' => $this->dailyReportService->getAccessToken()],
       'attributes' => ['target' => '_blank'],
     ]);
+    $permissions_url = Url::fromRoute('user.admin_permissions', [], [
+      'fragment' => 'module-quiz_test',
+    ]);
+
+    $status_items = [
+      $this->t('Текущее время на сервере: <strong>@time</strong>', ['@time' => $now_formatted]),
+      $this->t('Дата последней автоматической отправки: <strong>@date</strong>', ['@date' => $last_sent]),
+      $this->t('Права доступа: просмотр отчёта на сайте защищён и разрешён только пользователям с правом <em>«Просмотр ежедневных отчётов тестирования»</em> или «Управление тестами». Настроить роли можно на странице <a href=":perm_url">Права доступа</a>.', [
+        ':perm_url' => $permissions_url->toString(),
+      ]),
+    ];
+    if ($config->get('enable_web_view') ?? TRUE) {
+      $status_items[] = Link::fromTextAndUrl($this->t('Открыть отчёт за сегодня в новой вкладке &rarr;'), $today_preview_url)->toRenderable();
+    }
+    else {
+      $status_items[] = $this->t('<em>Веб-версия отчёта отключена. Отчёты доставляются только на email.</em>');
+    }
 
     $form['status_box'] = [
       '#type' => 'details',
-      '#title' => $this->t('Информация о статусе и предпросмотр'),
+      '#title' => $this->t('Информация о статусе и доступ'),
       '#open' => TRUE,
     ];
     $form['status_box']['info'] = [
       '#theme' => 'item_list',
-      '#items' => [
-        $this->t('Текущее время на сервере: <strong>@time</strong>', ['@time' => $now_formatted]),
-        $this->t('Дата последней автоматической отправки: <strong>@date</strong>', ['@date' => $last_sent]),
-        Link::fromTextAndUrl($this->t('Открыть веб-версию отчёта за сегодня в новой вкладке &rarr;'), $today_preview_url)->toRenderable(),
-      ],
+      '#items' => $status_items,
     ];
 
     // --- Delivery settings ---
@@ -101,6 +113,13 @@ class QuizTestDailyReportSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Включить автоматическую отправку ежедневного отчёта'),
       '#description' => $this->t('Отчёт будет формироваться и отправляться в конце дня при выполнении планировщика Cron.'),
       '#default_value' => $config->get('enabled') ?? TRUE,
+    ];
+
+    $form['delivery']['enable_web_view'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Включить веб-версию отчёта на сайте'),
+      '#description' => $this->t('Если включено, в письме будет кнопка перехода на страницу отчёта на сайте (доступна только авторизованным пользователям с правом «Просмотр ежедневных отчётов тестирования» или администраторам). Если выключено — веб-страницы отчёта отключаются, а отчёт приходит только на почту.'),
+      '#default_value' => $config->get('enable_web_view') ?? TRUE,
     ];
 
     $form['delivery']['recipients'] = [
@@ -263,6 +282,7 @@ class QuizTestDailyReportSettingsForm extends ConfigFormBase {
   protected function saveConfigValues(FormStateInterface $form_state) {
     $this->config('quiz_test.daily_report.settings')
       ->set('enabled', (bool) $form_state->getValue('enabled'))
+      ->set('enable_web_view', (bool) $form_state->getValue('enable_web_view'))
       ->set('recipients', trim((string) $form_state->getValue('recipients')))
       ->set('subject', trim((string) $form_state->getValue('subject')))
       ->set('send_hour', (int) $form_state->getValue('send_hour'))

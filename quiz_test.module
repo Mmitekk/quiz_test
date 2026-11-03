@@ -75,6 +75,7 @@ function quiz_test_theme($existing, $type, $theme, $path) {
         'subject' => '',
         'include_details' => TRUE,
         'site_name' => '',
+        'is_web_view' => FALSE,
       ],
       'template' => 'quiz-test-daily-report-email',
     ],
@@ -130,6 +131,7 @@ function quiz_test_mail($key, &$message, $params) {
         '#subject' => $params['subject'],
         '#include_details' => $params['include_details'] ?? TRUE,
         '#site_name' => $params['site_name'] ?? \Drupal::config('system.site')->get('name'),
+        '#is_web_view' => FALSE,
       ];
       $rendered_html = (string) \Drupal::service('renderer')->renderPlain($html_content);
 

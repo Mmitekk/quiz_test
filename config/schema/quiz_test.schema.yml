@@ -19,6 +19,9 @@ quiz_test.daily_report.settings:
     enabled:
       type: boolean
       label: 'Enable daily summary reports'
+    enable_web_view:
+      type: boolean
+      label: 'Enable web view of daily report'
     recipients:
       type: string
       label: 'Email recipients for daily reports'
@@ -40,6 +43,3 @@ quiz_test.daily_report.settings:
     last_sent_date:
       type: string
       label: 'Date (Y-m-d) of last sent report'
-    access_token:
-      type: string
-      label: 'Secret token for accessing web report without authentication'

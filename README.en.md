@@ -139,13 +139,14 @@ Navigate to **Administration → Configuration → Quiz Test Daily Report** (`/a
 4. **Weekdays Only**: Optionally skip sending reports on Saturdays and Sundays.
 5. **Content Options**: Toggle full question breakdown vs. summary-only, and toggle empty day skipping.
 6. **Send Now Button**: Instantly tests email dispatch for today's submissions without waiting for cron.
-7. **Web View Link**: Both the admin settings page and all sent emails include a secure tokenized link to view the report in a browser without requiring admin authentication.
+7. **Web View & Access Control**: Toggle the web view feature on or off. When enabled, emails include a link to view the report on the site. Access is strictly protected: only authenticated users with the `view quiz test daily reports` or `administer quiz tests` permission can open the report. Anonymous visitors (including incognito sessions and search bots) receive HTTP 403 Forbidden, and pages carry `X-Robots-Tag: noindex, nofollow, noarchive` and `noindex` meta tags.
 
 ## Permissions
 
 | Permission | Description | Restricted |
 |------------|-------------|:---:|
 | `administer quiz tests` | Create, edit, delete tests, questions, access results log and report settings | Yes |
+| `view quiz test daily reports` | View daily quiz test reports on the website | Yes |
 | `take quiz tests` | Take tests on the site | — |
 
 Configured under **Administration → People → Permissions** (`/admin/people/permissions`).
@@ -171,8 +172,9 @@ Configured under **Administration → People → Permissions** (`/admin/people/p
 | `/admin/quiz-test/results/{id}/delete` | `entity.quiz_test_result.delete_form` | Delete submission record |
 | `/admin/config/quiz-test/settings` | `quiz_test.settings` | General settings |
 | `/admin/config/quiz-test/daily-report` | `quiz_test.daily_report_settings` | Daily report & schedule settings |
-| `/admin/quiz-test/daily-report/today` | `quiz_test.daily_report_view_today` | View today's report (admin) |
-| `/quiz-test/daily-report/{date}` | `quiz_test.daily_report_view` | Web report view by date (secured token or admin) |
+| `/admin/quiz-test/daily-report/today` | `quiz_test.daily_report_view_today` | View today's report (restricted) |
+| `/admin/quiz-test/daily-report/{date}` | `quiz_test.daily_report_view` | Web report view by date (restricted to users with permission) |
+| `/quiz-test/daily-report/{date}` | `quiz_test.daily_report_view_legacy` | Redirects to `/admin/quiz-test/daily-report/{date}` |
 | `/quiz-test/{id}` | `quiz_test.take_test` | Public test-taking form |
 
 ## Module Structure

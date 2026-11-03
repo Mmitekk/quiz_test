@@ -1,6 +1,11 @@
 administer quiz tests:
   title: 'Управление тестами'
-  description: 'Создание, редактирование и удаление тестов и вопросов.'
+  description: 'Создание, редактирование и удаление тестов и вопросов, управление настройками.'
+  restrict access: true
+
+view quiz test daily reports:
+  title: 'Просмотр ежедневных отчётов тестирования'
+  description: 'Просмотр ежедневных сводных отчётов по результатам тестирования на сайте.'
   restrict access: true
 
 take quiz tests:
